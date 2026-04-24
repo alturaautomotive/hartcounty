@@ -1,4 +1,5 @@
-import { getExportCsv, verifyToken } from "@/lib/actions";
+import { getExportCsv } from "@/lib/actions";
+import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
 
 export async function GET() {
