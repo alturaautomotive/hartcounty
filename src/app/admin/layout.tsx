@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { verifyToken, logoutAction } from "@/lib/actions";
+import { logoutAction } from "@/lib/actions";
+import { verifyToken } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 const navItems = [
