@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Pet {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  species        String   @default("dog")
+  breed          String?
+  ageCategory    String?
+  sex            String?
+  size           String?
+  weight         String?
+  color          String?
+  description    String?
+  status         String   @default("available")
+  price          Float?
+  imageUrl       String?
+  goodWithKids   Boolean  @default(false)
+  goodWithDogs   Boolean  @default(false)
+  goodWithCats   Boolean  @default(false)
+  houseTrained   Boolean  @default(false)
+  spayedNeutered Boolean  @default(false)
+  vaccinated     Boolean  @default(false)
+  microchipped   Boolean  @default(false)
+  energyLevel    String   @default("medium")
+  specialNeeds   String?
+  adoptionFee    Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  bookings  BookingRequest[]
+  donations Donation[]
+}
+
+model BookingRequest {
+  id             String   @id @default(cuid())
+  petId          String
+  pet            Pet      @relation(fields: [petId], references: [id])
+  name           String
+  email          String
+  phone          String?
+  preferredDates String?
+  message        String?
+  status         String   @default("pending")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Donation {
+  id                  String   @id @default(cuid())
+  amount              Float
+  interval            String   @default("one-time")
+  name                String?
+  email               String?
+  petId               String?
+  pet                 Pet?     @relation(fields: [petId], references: [id])
+  paypalTransactionId String?
+  message             String?
+  createdAt           DateTime @default(now())
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hart County Animal Rescue
+
+A Next.js 15 App Router application for Hart County animal rescue and pet adoption, built with TypeScript, Tailwind CSS, and Prisma with SQLite.
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript (strict mode)
+- **Styling**: Tailwind CSS
+- **Database**: SQLite via Prisma ORM
+- **Validation**: Zod
+- **Forms**: React Hook Form
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Set up environment
+
+```bash
+cp .env.example .env
+```
+
+### 3. Initialize the database
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+### 4. Seed the database
+
+```bash
+npm run prisma:seed
+```
+
+This seeds 10 sample pets (parsed from hardcoded CSV data via PapaParse) and a default admin user (`admin@hartcounty.org` / `admin123`).
+
+### 5. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 6. Build for production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/          # Next.js App Router pages and layouts
+  lib/
+    prisma.ts   # Singleton Prisma client
+    actions.ts  # Server actions (e.g., createBooking)
+  generated/    # Prisma generated client
+prisma/
+  schema.prisma # Database schema (Pet, BookingRequest, Donation, AdminUser)
+  seed.ts       # Database seed script
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Database Models
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Pet** - Adoptable animals with breed, age, status, etc.
+- **BookingRequest** - Visit/adoption booking requests linked to pets
+- **Donation** - Monetary donations (one-time or recurring)
+- **AdminUser** - Admin accounts with hashed passwords
 
-## Deploy on Vercel
+## CSV Mapping (PET-V2-TEST-Sheet1.csv -> Pet model)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| CSV Column     | Pet Field     | Notes                          |
+| -------------- | ------------- | ------------------------------ |
+| title          | name, slug    | slug generated from name       |
+| availability   | status        | "Adopted" -> "adopted", else "available" |
+| breed          | breed         |                                |
+| age            | ageCategory   |                                |
+| sex            | sex           |                                |
+| size           | size          |                                |
+| weight         | weight        |                                |
+| color          | color         |                                |
+| description    | description   |                                |
+| price          | price, adoptionFee |                           |
+| image          | imageUrl      |                                |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Tailwind Theme
+
+The project uses a rescue-themed color palette defined in `globals.css`:
+
+- **Primary**: Blues (`#2563eb`) for CTAs and links
+- **Background**: Warm stone (`#fafaf9`) for a welcoming feel
+- **Success**: Green (`#10b981`) for availability badges
+- **Accent**: Amber (`#f59e0b`) for highlights
+- **Font**: Inter (sans-serif) for readability
