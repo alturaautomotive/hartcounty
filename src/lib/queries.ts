@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { notFound } from "next/navigation";
 
 export type PetFilters = {
   species?: string;
@@ -9,6 +10,12 @@ export type PetFilters = {
   goodWithCats?: boolean;
   houseTrained?: boolean;
 };
+
+export async function getPetBySlug(slug: string) {
+  const pet = await prisma.pet.findUnique({ where: { slug } });
+  if (!pet) notFound();
+  return pet;
+}
 
 export async function getFeaturedPets() {
   return prisma.pet.findMany({

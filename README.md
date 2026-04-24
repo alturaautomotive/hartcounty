@@ -48,6 +48,32 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## Email Notifications
+
+For booking request emails, set `SMTP_*` and `EMAIL_FROM` in `.env`.
+
+**Dev:** Run [MailDev](https://github.com/maildev/maildev) on port 1025 for a fake SMTP server:
+
+```bash
+npm i -g maildev && maildev
+```
+
+The default `.env` values (`SMTP_HOST=localhost`, `SMTP_PORT=1025`) work with MailDev out of the box. View caught emails at [http://localhost:1080](http://localhost:1080).
+
+**Test:** Submit the booking form on any pet detail page, then check the MailDev inbox for the notification email.
+
+**Prod:** Configure real SMTP credentials in `.env`:
+
+```
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+EMAIL_FROM=shelter@hcars.org
+```
+
+If `SMTP_HOST` is not set, emails are logged to the console instead (no error is thrown).
+
 ### 6. Build for production
 
 ```bash
