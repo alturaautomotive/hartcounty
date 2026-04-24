@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { Pet } from "@/generated/prisma/client";
+import type { Pet } from "@prisma/client";
 
 const badges = [
   { key: "goodWithKids", label: "Good with Kids" },
