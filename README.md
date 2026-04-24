@@ -118,6 +118,33 @@ prisma/
 | price          | price, adoptionFee |                           |
 | image          | imageUrl      |                                |
 
+## PayPal Donations
+
+The app uses PayPal Orders v2 for processing donations on the `/donate` page and per-pet sponsor buttons.
+
+### Sandbox Setup
+
+1. Go to [developer.paypal.com](https://developer.paypal.com/dashboard/applications/sandbox)
+2. Create a new app (or use the default sandbox app)
+3. Copy the **Client ID** and **Secret** into your `.env`:
+
+```
+NEXT_PUBLIC_PAYPAL_CLIENT_ID=your_sandbox_client_id
+PAYPAL_SECRET=your_sandbox_secret
+```
+
+4. Use PayPal sandbox test accounts to complete donations
+
+### Testing
+
+- Visit `/donate` and click a donation amount — PayPal buttons will render for $25, $50, and $100
+- On any pet detail page, the **Sponsor** button now renders a PayPal button ($25 one-time)
+- Completed donations are saved to the `Donation` table in the database
+
+### Production
+
+Replace sandbox credentials with live credentials from the PayPal dashboard. The SDK URL automatically switches between sandbox and production based on `NODE_ENV`.
+
 ## Tailwind Theme
 
 The project uses a rescue-themed color palette defined in `globals.css`:

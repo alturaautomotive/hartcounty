@@ -1,5 +1,15 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
+declare global {
+  interface Window {
+    paypal?: {
+      Buttons: (opts: Record<string, unknown>) => { render: (el: string | HTMLElement) => void };
+    };
+  }
+}
+
 export default function SponsorButton({
   petId,
   petName,
@@ -7,19 +17,64 @@ export default function SponsorButton({
   petId: string;
   petName: string;
 }) {
+  const [thankYou, setThankYou] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rendered = useRef(false);
+
+  useEffect(() => {
+    function renderButton() {
+      if (!window.paypal || rendered.current || !containerRef.current) return;
+      rendered.current = true;
+
+      window.paypal.Buttons({
+        style: { shape: "rect", color: "gold", label: "donate", layout: "horizontal" },
+        createOrder: async () => {
+          const res = await fetch("/api/paypal/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: 25, interval: "one-time", petId }),
+          });
+          const data = await res.json();
+          return data.id;
+        },
+        onApprove: async (data: { orderID: string }) => {
+          await fetch(`/api/paypal/orders/${data.orderID}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ interval: "one-time" }),
+          });
+          setThankYou(true);
+        },
+      }).render(containerRef.current);
+    }
+
+    if (window.paypal) {
+      renderButton();
+    } else {
+      const timer = setInterval(() => {
+        if (window.paypal) {
+          clearInterval(timer);
+          renderButton();
+        }
+      }, 200);
+      return () => clearInterval(timer);
+    }
+  }, [petId]);
+
+  if (thankYou) {
+    return (
+      <div className="flex-1 rounded-xl border-2 border-green-500 bg-green-50 py-3 text-center text-sm font-semibold text-green-600">
+        Thank you for sponsoring {petName}!
+      </div>
+    );
+  }
+
   return (
-    <button
-      type="button"
-      className="flex-1 rounded-xl border-2 border-green-500 py-3 text-center text-sm font-semibold text-green-600 transition hover:bg-green-50"
-      aria-label={`Sponsor ${petName}`}
-      onClick={() => {
-        console.log(`[PayPal Sponsor Stub] petId: ${petId}`);
-        alert(
-          `Thank you for your interest in sponsoring ${petName}! PayPal integration coming soon.`
-        );
-      }}
-    >
-      Sponsor {petName}
-    </button>
+    <div className="flex-1">
+      <p className="mb-2 text-center text-sm font-semibold text-green-600">
+        Sponsor {petName} — $25
+      </p>
+      <div ref={containerRef} className="min-h-[45px]" />
+    </div>
   );
 }

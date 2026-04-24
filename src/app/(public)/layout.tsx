@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Script from "next/script";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -13,6 +14,11 @@ export default function PublicLayout({
 }) {
   return (
     <>
+      <Script
+        src={`https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&intent=capture`}
+        strategy="beforeInteractive"
+      />
+
       <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 backdrop-blur">
         <nav
           className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6"
