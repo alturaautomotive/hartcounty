@@ -78,15 +78,15 @@ async function main() {
   // Create sample admin user
   const passwordHash = await bcrypt.hash("admin123", 10);
   await prisma.adminUser.upsert({
-    where: { email: "admin@hartcounty.org" },
+    where: { email: "admin@hcars.org" },
     update: {},
     create: {
-      email: "admin@hartcounty.org",
+      email: "admin@hcars.org",
       passwordHash,
       name: "Admin",
     },
   });
-  console.log("  Created admin user: admin@hartcounty.org");
+  console.log("  Created admin user: admin@hcars.org (password: admin123)");
 
   console.log("Seeding complete!");
 }

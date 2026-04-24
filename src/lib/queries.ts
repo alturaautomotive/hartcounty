@@ -45,3 +45,43 @@ export async function getPets(filters: PetFilters = {}) {
     orderBy: { createdAt: "desc" },
   });
 }
+
+// ─── Admin Dashboard Queries ─────────────────────────────────────────
+
+export async function getDashboardData() {
+  const [petCount, availableCount, adoptedCount, bookingCount, donationCount, recentBookings, recentDonations] =
+    await Promise.all([
+      prisma.pet.count(),
+      prisma.pet.count({ where: { status: "available" } }),
+      prisma.pet.count({ where: { status: "adopted" } }),
+      prisma.bookingRequest.count(),
+      prisma.donation.count(),
+      prisma.bookingRequest.findMany({
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        include: { pet: { select: { name: true } } },
+      }),
+      prisma.donation.findMany({
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        include: { pet: { select: { name: true } } },
+      }),
+    ]);
+
+  const totalDonated = await prisma.donation.aggregate({ _sum: { amount: true } });
+
+  return {
+    petCount,
+    availableCount,
+    adoptedCount,
+    bookingCount,
+    donationCount,
+    totalDonated: totalDonated._sum.amount ?? 0,
+    recentBookings,
+    recentDonations,
+  };
+}
+
+export async function getAllPets() {
+  return prisma.pet.findMany({ orderBy: { name: "asc" } });
+}
