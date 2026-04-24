@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Pet } from "@/generated/prisma/client";
+import type { Pet } from "@prisma/client";
 import PetCard from "@/components/PetCard";
 import { steps, stepSchemas } from "@/types/survey";
 import type { SurveyAnswers } from "@/types/survey";
