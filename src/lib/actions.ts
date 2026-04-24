@@ -3,6 +3,69 @@
 import prisma from "@/lib/prisma";
 import nodemailer from "nodemailer";
 
+export type SurveyMatchesData = {
+  name: string;
+  email: string;
+  matchIds: string[];
+  matchNames: string[];
+};
+
+export type SurveyMatchesResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function sendSurveyMatches(
+  data: SurveyMatchesData
+): Promise<SurveyMatchesResult> {
+  try {
+    const matchList = data.matchNames
+      .map((name, i) => `<li><a href="${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/pets">${name}</a></li>`)
+      .join("");
+
+    if (process.env.SMTP_HOST) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || "1025"),
+          secure: false,
+          auth:
+            process.env.SMTP_USER && process.env.SMTP_PASS
+              ? {
+                  user: process.env.SMTP_USER,
+                  pass: process.env.SMTP_PASS,
+                }
+              : undefined,
+        });
+
+        await transporter.sendMail({
+          from: process.env.EMAIL_FROM ?? "noreply@hcars.org",
+          to: data.email,
+          cc: "shelter@hcars.org",
+          subject: "Your Pet Matches from Hart County Animal Rescue",
+          html: `
+            <h2>Hi ${data.name}!</h2>
+            <p>Here are the pets we matched for you:</p>
+            <ol>${matchList}</ol>
+            <p>Visit us to schedule a meet-and-greet!</p>
+            <p>Hart County Animal Rescue</p>
+          `,
+        });
+      } catch (emailError) {
+        console.error("Failed to send survey matches email:", emailError);
+      }
+    } else {
+      console.log(
+        `Email stub: survey matches for ${data.email} — ${data.matchNames.join(", ")}`
+      );
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send survey matches:", error);
+    return { success: false, error: "Failed to send email. Please try again." };
+  }
+}
+
 export type BookingData = {
   petId: string;
   name: string;

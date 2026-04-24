@@ -25,6 +25,10 @@ export async function getFeaturedPets() {
   });
 }
 
+export async function getAdoptablePets() {
+  return getPets({});
+}
+
 export async function getPets(filters: PetFilters = {}) {
   const where: Record<string, unknown> = { status: "available" };
 
