@@ -42,8 +42,8 @@ export function metaLink(pet: Pet): string {
   return `https://${DOMAIN}/pets/${pet.slug}`;
 }
 
-export function metaImageLink(pet: Pet): string | null {
-  if (!pet.imageUrl) return null;
+export function metaImageLink(pet: Pet): string {
+  if (!pet.imageUrl) return "";
   try {
     const url = new URL(pet.imageUrl);
     if (
@@ -57,7 +57,7 @@ export function metaImageLink(pet: Pet): string | null {
   } catch {
     // invalid URL
   }
-  return null;
+  return "";
 }
 
 function mapAgeGroup(ageCategory: string | null): string {
@@ -94,7 +94,7 @@ export function metaRow(pet: Pet): MetaRow | null {
   const description = metaDescription(pet);
   const price = metaPrice(pet);
   const link = metaLink(pet);
-  const imageLink = metaImageLink(pet);
+  const image_link = metaImageLink(pet);
 
   // Validate link protocol
   try {
@@ -128,7 +128,7 @@ export function metaRow(pet: Pet): MetaRow | null {
     condition: metaCondition(pet),
     price,
     link,
-    image_link: imageLink ?? "",
+    image_link,
     brand: BRAND,
     product_type: `Pets > ${pet.species ?? "Pet"} > ${pet.ageCategory ?? "Unknown"}`,
     google_product_category: "Animals & Pet Supplies > Live Animals",

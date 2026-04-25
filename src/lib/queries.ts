@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { Prisma } from "@prisma/client";
 
 export type PetFilters = {
   species?: string;
@@ -101,10 +102,18 @@ export async function getAllPets() {
 
 
 export async function getActiveTeamMembers() {
-  return prisma.teamMember.findMany({
-    where: { isActive: true },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-  });
+  try {
+    return await prisma.teamMember.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    // Allow About page to load even if TeamMember table is not in the deployed DB yet.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function getAllTeamMembers() {

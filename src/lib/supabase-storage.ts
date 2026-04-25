@@ -1,14 +1,15 @@
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 
-const imageTypes: Record<string, string> = {
+export const imageTypes: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
   "image/gif": "gif",
 };
 
-const maxImageSize = 5 * 1024 * 1024;
+export const maxImageSize = 5 * 1024 * 1024;
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 
