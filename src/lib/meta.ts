@@ -52,7 +52,7 @@ export function metaDescription(pet: Pet): string {
 }
 
 export function metaLink(pet: Pet): string {
-  return `${getFeedBaseUrl()}/pets/${pet.slug}`;
+  return `${getFeedBaseUrl()}/book/${pet.slug}`;
 }
 
 export function metaImageLink(pet: Pet): string {
