@@ -68,16 +68,15 @@ export default async function AboutPage() {
           </div>
 
           <div className="rounded-3xl border border-amber-200/30 bg-white/10 p-4 shadow-2xl shadow-slate-950/40 backdrop-blur">
-            <div className="flex aspect-[4/3] items-center justify-center rounded-2xl border border-dashed border-amber-200/60 bg-slate-900/70 text-center">
-              <div className="max-w-xs px-6">
-                <p className="text-sm font-black uppercase tracking-[0.24em] text-amber-200">
-                  Image Placeholder
-                </p>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  Add a warm local rescue photo here, ideally volunteers with a
-                  Hart County dog.
-                </p>
-              </div>
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-900">
+              <Image
+                src="/about/volunteers-with-dog.png"
+                alt="Hart County Animal Rescue volunteers with a dog outside the shelter"
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 42vw"
+                className="object-cover"
+              />
             </div>
           </div>
         </div>
@@ -165,16 +164,14 @@ export default async function AboutPage() {
             </p>
           </div>
           <div className="rounded-3xl border border-slate-950 bg-slate-950 p-4 shadow-2xl shadow-slate-950/30">
-            <div className="flex aspect-[4/3] items-center justify-center rounded-2xl border border-dashed border-amber-300 bg-slate-900 text-center">
-              <div className="max-w-xs px-6">
-                <p className="text-sm font-black uppercase tracking-[0.24em] text-amber-200">
-                  Photo Placeholder
-                </p>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  Use a candid volunteer-and-dog photo here. Warm, real, and
-                  local will work better than stock.
-                </p>
-              </div>
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-900">
+              <Image
+                src="/about/volunteer-comforting-dog.png"
+                alt="A rescue volunteer comforting a dog inside the shelter"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover"
+              />
             </div>
           </div>
         </div>
