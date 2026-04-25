@@ -12,6 +12,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.19.3",
+    "@supabase/supabase-js": "^2.104.1",
     "bcryptjs": "^3.0.3",
     "next": "16.2.4",
     "nodemailer": "^8.0.6",

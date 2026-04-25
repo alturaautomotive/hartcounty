@@ -11,9 +11,8 @@ import { getAllAdminEmails } from "@/lib/queries";
 import { z } from "zod";
 import crypto from "crypto";
 import type { SurveyAnswers } from "@/types/survey";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import type { Pet } from "@prisma/client";
+import { uploadImageToSupabase } from "./supabase-storage";
 import { metaRow, updateMetaItem, deleteMetaItem, updateMetaBatch } from "./meta";
 
 export type SurveyMatchesData = {
@@ -292,15 +291,6 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-const imageTypes: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/gif": "gif",
-};
-
-const maxImageSize = 5 * 1024 * 1024;
-
 async function getCurrentAdmin() {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin-token")?.value;
@@ -327,26 +317,6 @@ async function requireSuperAdmin() {
     throw new Error("Only the super admin can manage admin users.");
   }
   return admin;
-}
-
-async function saveUploadedImage(file: File | null, folder: "pets" | "team") {
-  if (!file || file.size === 0) return null;
-  if (!imageTypes[file.type]) {
-    throw new Error("Upload a JPG, PNG, GIF, or WebP image.");
-  }
-  if (file.size > maxImageSize) {
-    throw new Error("Images must be 5MB or smaller.");
-  }
-
-  const extension = imageTypes[file.type];
-  const uploadDir = path.join(process.cwd(), "public", "uploads", folder);
-  await mkdir(uploadDir, { recursive: true });
-
-  const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extension}`;
-  const bytes = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadDir, filename), bytes);
-
-  return `/uploads/${folder}/${filename}`;
 }
 
 function initialsFor(name: string) {
@@ -778,7 +748,7 @@ export async function updatePetFields(formData: FormData): Promise<{ success: tr
     if (data.status === null) data.status = "available";
 
     const imageFile = formData.get("imageFile");
-    const uploadedImageUrl = await saveUploadedImage(
+    const uploadedImageUrl = await uploadImageToSupabase(
       imageFile instanceof File ? imageFile : null,
       "pets"
     );
@@ -906,7 +876,7 @@ export async function saveTeamMemberAction(
     }
 
     const imageFile = formData.get("imageFile");
-    const uploadedImageUrl = await saveUploadedImage(
+    const uploadedImageUrl = await uploadImageToSupabase(
       imageFile instanceof File ? imageFile : null,
       "team"
     );

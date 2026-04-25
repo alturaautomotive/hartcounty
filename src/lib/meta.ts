@@ -46,7 +46,12 @@ export function metaImageLink(pet: Pet): string | null {
   if (!pet.imageUrl) return null;
   try {
     const url = new URL(pet.imageUrl);
-    if (url.protocol === "https:" && url.hostname.endsWith(DOMAIN)) {
+    if (
+      url.protocol === "https:" &&
+      (url.hostname === DOMAIN ||
+        url.hostname.endsWith("." + DOMAIN) ||
+        url.hostname.endsWith(".supabase.co"))
+    ) {
       return pet.imageUrl;
     }
   } catch {
