@@ -1,9 +1,10 @@
 import DonateButtons from "./DonateButtons";
+import MonthlyButtons from "./MonthlyButtons";
 
 export const metadata = {
-  title: "Donate - Hart County Animal Rescue",
+  title: "Donate or Subscribe Monthly - Hart County Animal Rescue",
   description:
-    "Support Hart County Animal Rescue with a one-time donation. Every dollar helps us rescue, rehabilitate, and rehome animals.",
+    "Support with one-time donations or $25/mo memberships. Every contribution funds pet care, vaccines, and community rescues.",
 };
 
 export default function DonatePage() {
@@ -21,6 +22,17 @@ export default function DonatePage() {
           rehoming of animals in Hart County. Choose an amount below to make a
           difference today.
         </p>
+      </section>
+
+      <section id="monthly-membership" className="mb-12">
+        <h2 className="mb-6 text-center text-xl font-black text-slate-900">
+          Become a Monthly Member
+        </h2>
+        <p className="mx-auto max-w-2xl text-lg leading-8 text-slate-600 text-center mb-8">
+          Join for $25/mo to support one pet each month, vaccines, and others by
+          committing to our community and its pets.
+        </p>
+        <MonthlyButtons />
       </section>
 
       <section className="mb-12">
