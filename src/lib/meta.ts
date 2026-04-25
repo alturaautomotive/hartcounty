@@ -1,6 +1,19 @@
 import type { Pet } from "@prisma/client";
 
-const DOMAIN = "hcars.org";
+function getFeedBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_BASE_URL?.trim() ?? "";
+  if (raw.startsWith("https://")) return raw.replace(/\/+$/, "");
+  return "https://hartcounty.vercel.app";
+}
+
+function getFeedHostname(): string {
+  try {
+    return new URL(getFeedBaseUrl()).hostname;
+  } catch {
+    return "hartcounty.vercel.app";
+  }
+}
+
 const BRAND = "Hart County Animal Rescue";
 
 export function metaAvailability(pet: Pet): string {
@@ -39,17 +52,20 @@ export function metaDescription(pet: Pet): string {
 }
 
 export function metaLink(pet: Pet): string {
-  return `https://${DOMAIN}/pets/${pet.slug}`;
+  return `${getFeedBaseUrl()}/pets/${pet.slug}`;
 }
 
 export function metaImageLink(pet: Pet): string {
   if (!pet.imageUrl) return "";
   try {
     const url = new URL(pet.imageUrl);
+    const feedHost = getFeedHostname();
     if (
       url.protocol === "https:" &&
-      (url.hostname === DOMAIN ||
-        url.hostname.endsWith("." + DOMAIN) ||
+      (url.hostname === "hcars.org" ||
+        url.hostname.endsWith(".hcars.org") ||
+        url.hostname === feedHost ||
+        url.hostname.endsWith("." + feedHost) ||
         url.hostname.endsWith(".supabase.co"))
     ) {
       return pet.imageUrl;
