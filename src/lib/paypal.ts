@@ -76,3 +76,48 @@ export async function captureOrder(accessToken: string, orderId: string) {
 
   return res.json();
 }
+
+export async function createSubscription(
+  accessToken: string,
+  opts: { planId: string; petId?: string }
+) {
+  const res = await fetch(`${PAYPAL_BASE}/v1/billing/subscriptions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      plan_id: opts.planId,
+      custom_id: opts.petId || "general",
+      application_context: {
+        shipping_preference: "NO_SHIPPING",
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`PayPal createSubscription failed: ${res.status} ${await res.text()}`);
+  }
+
+  return res.json();
+}
+
+export async function activateSubscription(accessToken: string, subId: string) {
+  const res = await fetch(
+    `${PAYPAL_BASE}/v1/billing/subscriptions/${encodeURIComponent(subId)}/activate`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`PayPal activateSubscription failed: ${res.status} ${await res.text()}`);
+  }
+
+  return res.json();
+}
