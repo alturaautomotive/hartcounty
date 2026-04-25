@@ -97,6 +97,7 @@ export async function getAllPets() {
   return prisma.pet.findMany({ orderBy: { name: "asc" } });
 }
 
+
 export async function getActiveTeamMembers() {
   return prisma.teamMember.findMany({
     where: { isActive: true },

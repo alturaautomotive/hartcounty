@@ -802,7 +802,7 @@ export async function updatePetFields(formData: FormData): Promise<{ success: tr
       try {
         const row = metaRow(updatedPet);
         if (row) {
-          await updateMetaItem(catalogId, token, { id: updatedPet.slug, ...row } as unknown as Record<string, string>);
+          await updateMetaItem(catalogId, token, row as unknown as Record<string, string>);
         }
       } catch (e) {
         console.error('Meta sync failed for pet', id, e);
@@ -829,10 +829,19 @@ export async function updatePetStatus(formData: FormData): Promise<void> {
   if (!id || !status) return;
   await prisma.pet.update({ where: { id }, data: { status } });
 
-  const catalogId = process.env.META_CATALOG_ID ?? "";
-  const metaToken = process.env.META_CATALOG_ACCESS_TOKEN ?? "";
   const updatedPet = await prisma.pet.findUnique({ where: { id } });
-  if (updatedPet) await syncMetaPet(catalogId, metaToken, updatedPet);
+  const catalogId = process.env.META_CATALOG_ID;
+  const token = process.env.META_CATALOG_ACCESS_TOKEN;
+  if (catalogId && token && updatedPet) {
+    try {
+      const row = metaRow(updatedPet);
+      if (row) {
+        await updateMetaItem(catalogId, token, row as unknown as Record<string, string>);
+      }
+    } catch (e) {
+      console.error('Meta sync failed for pet', id, e);
+    }
+  }
 
   revalidatePath("/admin/pets");
   revalidatePath("/pets");
@@ -843,9 +852,16 @@ export async function deletePet(formData: FormData): Promise<void> {
   const id = formData.get("id") as string;
   if (!id) return;
 
-  const catalogId = process.env.META_CATALOG_ID ?? "";
-  const metaToken = process.env.META_CATALOG_ACCESS_TOKEN ?? "";
-  await syncMetaDelete(catalogId, metaToken, id);
+  const catalogId = process.env.META_CATALOG_ID;
+  const token = process.env.META_CATALOG_ACCESS_TOKEN;
+  if (catalogId && token) {
+    try {
+      const pet = await prisma.pet.findUnique({ where: { id } });
+      if (pet?.slug) await deleteMetaItem(catalogId, token, pet.slug);
+    } catch (e) {
+      console.error('Meta delete failed for pet', id, e);
+    }
+  }
 
   // Delete related bookings and donations first
   await prisma.bookingRequest.deleteMany({ where: { petId: id } });
@@ -1082,22 +1098,18 @@ export async function importPets(formData: FormData): Promise<ImportResult> {
     count++;
   }
 
-  const catalogId = process.env.META_CATALOG_ID ?? "";
-  const metaToken = process.env.META_CATALOG_ACCESS_TOKEN ?? "";
-  if (catalogId && metaToken && slugs.length > 0) {
-    try {
-      const updatedPets = await prisma.pet.findMany({ where: { slug: { in: slugs } } });
-      const changes = updatedPets
-        .map((p) => {
-          const row = metaRow(p);
-          return row ? { id: row.id, method: "UPDATE" as const, data: row as unknown as Record<string, string> } : null;
-        })
-        .filter((c): c is NonNullable<typeof c> => c !== null);
-      if (changes.length > 0) {
-        await updateMetaBatch(catalogId, metaToken, changes);
+  if (slugs.length) {
+    const catalogId = process.env.META_CATALOG_ID;
+    const token = process.env.META_CATALOG_ACCESS_TOKEN;
+    if (catalogId && token) {
+      try {
+        const pets = await prisma.pet.findMany({ where: { slug: { in: slugs } } });
+        const changes = pets.map(p => ({ method: 'UPDATE' as const, data: metaRow(p)! })).filter(c => c.data);
+        await updateMetaBatch(catalogId, token, changes as unknown as { id: string; method: "UPDATE"; data: Record<string, string> }[]);
+        console.log(`Synced ${changes.length} pets to Meta`);
+      } catch (e) {
+        console.error('Meta batch sync failed:', e);
       }
-    } catch (e) {
-      console.error("Meta batch sync failed:", e);
     }
   }
 
