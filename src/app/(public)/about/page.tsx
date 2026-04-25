@@ -3,6 +3,8 @@ import Image from "next/image";
 import { getActiveTeamMembers } from "@/lib/queries";
 import MembershipBanner from "@/components/MembershipBanner";
 
+export const dynamic = 'force-dynamic';
+
 const workBlocks = [
   {
     title: "We pull dogs in distress",
