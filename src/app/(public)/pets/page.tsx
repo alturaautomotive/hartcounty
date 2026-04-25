@@ -30,14 +30,18 @@ export default async function PetsPage({
   const pets = await getPets(filters);
 
   return (
-    <main className="flex-1 px-4 py-10 sm:px-6">
+    <main className="flex-1 px-4 py-12 sm:px-6">
       <div className="mx-auto max-w-7xl">
-        <h1 className="mb-2 text-3xl font-bold tracking-tight text-neutral-900">
+        <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-amber-700">
+          Private adoption gallery
+        </p>
+        <h1 className="mb-3 text-5xl font-black tracking-tight text-slate-950">
           Adoptable Pets
         </h1>
-        <p className="mb-8 text-neutral-600">
+        <p className="mb-8 max-w-2xl text-lg leading-8 text-slate-600">
           {pets.length} {pets.length === 1 ? "pet" : "pets"} available for
-          adoption
+          adoption, each receiving attentive care while they wait for the right
+          home.
         </p>
 
         <Suspense>
@@ -51,11 +55,11 @@ export default async function PetsPage({
             ))}
           </div>
         ) : (
-          <div className="mt-16 text-center">
-            <p className="text-lg font-medium text-neutral-700">
+          <div className="mt-16 rounded-3xl border border-slate-200 bg-white/90 p-10 text-center shadow-xl shadow-slate-950/10">
+            <p className="text-lg font-black text-slate-800">
               No pets match your filters
             </p>
-            <p className="mt-1 text-neutral-500">
+            <p className="mt-1 text-slate-500">
               Try adjusting your filters to see more results.
             </p>
           </div>

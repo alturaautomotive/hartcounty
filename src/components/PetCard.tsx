@@ -15,8 +15,8 @@ export default function PetCard({ pet }: { pet: Pet }) {
   const fee = pet.adoptionFee ?? pet.price;
 
   return (
-    <div className="group rounded-2xl border border-neutral-200 bg-white shadow-sm transition hover:shadow-lg">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl bg-neutral-100">
+    <div className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-950/10 ring-1 ring-white/70 transition hover:-translate-y-1 hover:border-amber-300 hover:shadow-2xl">
+      <div className="relative aspect-[4/3] overflow-hidden bg-slate-200">
         {pet.imageUrl ? (
           <Image
             src={pet.imageUrl}
@@ -26,7 +26,7 @@ export default function PetCard({ pet }: { pet: Pet }) {
             className="object-cover transition group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-neutral-400">
+          <div className="flex h-full items-center justify-center bg-slate-900 text-amber-200">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-16 w-16"
@@ -45,23 +45,23 @@ export default function PetCard({ pet }: { pet: Pet }) {
           </div>
         )}
         {pet.energyLevel && (
-          <span className="absolute top-3 right-3 rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-medium capitalize text-neutral-700 backdrop-blur">
+          <span className="absolute top-3 right-3 rounded-full border border-white/30 bg-slate-950/85 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-amber-200 backdrop-blur">
             {pet.energyLevel} energy
           </span>
         )}
       </div>
 
-      <div className="p-4">
+      <div className="p-5">
         <div className="mb-1 flex items-start justify-between gap-2">
-          <h3 className="text-lg font-semibold text-neutral-900">{pet.name}</h3>
+          <h3 className="text-xl font-black text-slate-950">{pet.name}</h3>
           {fee != null && (
-            <span className="shrink-0 text-lg font-bold text-primary-600">
+            <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-sm font-black text-amber-800">
               ${fee.toFixed(0)}
             </span>
           )}
         </div>
 
-        <p className="mb-3 text-sm text-neutral-500">
+        <p className="mb-4 text-sm font-semibold text-slate-500">
           {[pet.breed, pet.ageCategory, pet.size].filter(Boolean).join(" · ")}
         </p>
 
@@ -71,7 +71,7 @@ export default function PetCard({ pet }: { pet: Pet }) {
               pet[key] && (
                 <span
                   key={key}
-                  className="rounded-full bg-success-50 px-2.5 py-0.5 text-xs font-medium text-success-600"
+                  className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 ring-1 ring-emerald-200"
                 >
                   {label}
                 </span>
@@ -81,7 +81,7 @@ export default function PetCard({ pet }: { pet: Pet }) {
 
         <Link
           href={`/book/${pet.slug}`}
-          className="block w-full rounded-xl bg-primary-600 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-primary-700"
+          className="block w-full rounded-full bg-slate-950 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition hover:bg-amber-500 hover:text-slate-950"
           aria-label={`Book a meet-and-greet with ${pet.name}`}
         >
           Book Meet-and-Greet

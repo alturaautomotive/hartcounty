@@ -38,11 +38,11 @@ export default function PetFilters() {
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-slate-200 bg-white/85 p-4 shadow-xl shadow-slate-950/10 ring-1 ring-white/70">
       <select
         value={searchParams.get("species") ?? ""}
         onChange={(e) => updateFilter("species", e.target.value)}
-        className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700"
+        className="rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
         aria-label="Filter by species"
       >
         <option value="">All Species</option>
@@ -56,7 +56,7 @@ export default function PetFilters() {
       <select
         value={searchParams.get("size") ?? ""}
         onChange={(e) => updateFilter("size", e.target.value)}
-        className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700"
+        className="rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
         aria-label="Filter by size"
       >
         <option value="">All Sizes</option>
@@ -70,7 +70,7 @@ export default function PetFilters() {
       <select
         value={searchParams.get("ageCategory") ?? ""}
         onChange={(e) => updateFilter("ageCategory", e.target.value)}
-        className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700"
+        className="rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
         aria-label="Filter by age"
       >
         <option value="">All Ages</option>
@@ -92,8 +92,8 @@ export default function PetFilters() {
           onClick={() => toggleFilter(key)}
           className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
             searchParams.get(key) === "true"
-              ? "border-primary-600 bg-primary-50 text-primary-700"
-              : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-400"
+              ? "border-slate-950 bg-slate-950 text-amber-200 shadow-lg shadow-slate-950/20"
+              : "border-slate-300 bg-white text-slate-700 hover:border-amber-500 hover:text-slate-950"
           }`}
           aria-pressed={searchParams.get(key) === "true"}
         >

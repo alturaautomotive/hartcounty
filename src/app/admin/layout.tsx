@@ -3,10 +3,12 @@ import { cookies } from "next/headers";
 import { logoutAction } from "@/lib/actions";
 import { verifyToken } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import prisma from "@/lib/prisma";
 
 const navItems = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/pets", label: "Pets" },
+  { href: "/admin/team", label: "Team" },
   { href: "/admin/pets/import", label: "Import CSV" },
 ];
 
@@ -17,7 +19,13 @@ export default async function AdminLayout({
 }) {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin-token")?.value;
-  const user = token ? verifyToken(token) : null;
+  const session = token ? verifyToken(token) : null;
+  const user = session
+    ? await prisma.adminUser.findUnique({
+        where: { id: session.userId },
+        select: { email: true, role: true },
+      })
+    : null;
 
   // Unauthenticated users: proxy.ts redirects non-login admin routes to /admin/login.
   // This fallback only renders for /admin/login itself.
@@ -34,6 +42,9 @@ export default async function AdminLayout({
             HCARS Admin
           </Link>
           <p className="mt-1 text-xs text-neutral-500">{user.email}</p>
+          <p className="mt-1 text-xs font-semibold capitalize text-amber-700">
+            {user.role.replace("_", " ")}
+          </p>
         </div>
 
         <nav className="mt-2 space-y-1 px-2">
@@ -46,6 +57,15 @@ export default async function AdminLayout({
               {item.label}
             </Link>
           ))}
+
+          {user.role === "super_admin" && (
+            <Link
+              href="/admin/users"
+              className="block rounded-lg px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100"
+            >
+              Admin Users
+            </Link>
+          )}
 
           <a
             href="/api/pets/export"

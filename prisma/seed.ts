@@ -20,6 +20,37 @@ Sadie,Available,Husky,Young,Female,Large,45 lbs,Gray and White,"Beautiful and sp
 Cooper,Available,Dachshund,Adult,Male,Small,12 lbs,Red,"Loyal little guy with a big personality.",125,
 Molly,Available,Border Collie Mix,Young,Female,Medium,40 lbs,Black and White,"Smart and eager to please. Very trainable.",175`;
 
+const teamMembers = [
+  {
+    name: "Hart County Volunteers",
+    role: "Rescue Team",
+    bio: "The neighbors who answer calls, clean kennels, drive dogs, and keep tails wagging.",
+    initials: "HC",
+    sortOrder: 1,
+  },
+  {
+    name: "Foster Coordinator",
+    role: "Home Placement",
+    bio: "Matches dogs with safe foster homes so they can decompress and get ready for adoption.",
+    initials: "FC",
+    sortOrder: 2,
+  },
+  {
+    name: "Spay/Neuter Program Lead",
+    role: "Community Care",
+    bio: "Helps local families access affordable care before a small problem becomes a crisis.",
+    initials: "SN",
+    sortOrder: 3,
+  },
+  {
+    name: "Adoption Volunteers",
+    role: "Meet-and-Greets",
+    bio: "Gets to know each dog and each family so every adoption starts with trust.",
+    initials: "AD",
+    sortOrder: 4,
+  },
+];
+
 function toSlug(name: string): string {
   return name
     .toLowerCase()
@@ -79,14 +110,29 @@ async function main() {
   const passwordHash = await bcrypt.hash("admin123", 10);
   await prisma.adminUser.upsert({
     where: { email: "admin@hcars.org" },
-    update: {},
+    update: {
+      role: "super_admin",
+    },
     create: {
       email: "admin@hcars.org",
       passwordHash,
       name: "Admin",
+      role: "super_admin",
     },
   });
   console.log("  Created admin user: admin@hcars.org (password: admin123)");
+
+  for (const member of teamMembers) {
+    await prisma.teamMember.upsert({
+      where: { id: `seed-${member.initials.toLowerCase()}` },
+      update: member,
+      create: {
+        id: `seed-${member.initials.toLowerCase()}`,
+        ...member,
+      },
+    });
+    console.log(`  Upserted team member: ${member.name}`);
+  }
 
   console.log("Seeding complete!");
 }

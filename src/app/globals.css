@@ -11,23 +11,25 @@
 }
 
 :root {
-  --background: #fafaf9;
-  --foreground: #292524;
-  --primary: #2563eb;
-  --primary-light: #eff6ff;
-  --success: #10b981;
-  --accent: #f59e0b;
+  --background: #f8f3e8;
+  --foreground: #111827;
+  --primary: #0f172a;
+  --primary-light: #e8eef8;
+  --success: #047857;
+  --accent: #b45309;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1c1917;
-    --foreground: #e7e5e4;
+    --background: #f8f3e8;
+    --foreground: #111827;
   }
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at top left, rgba(180, 83, 9, 0.14), transparent 30rem),
+    linear-gradient(180deg, #fbf7ef 0%, var(--background) 45%, #efe3cf 100%);
   color: var(--foreground);
   font-family: "Inter", system-ui, -apple-system, sans-serif;
 }

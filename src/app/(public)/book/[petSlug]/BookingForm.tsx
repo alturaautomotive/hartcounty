@@ -69,11 +69,11 @@ export default function BookingForm({
 
   if (submitted) {
     return (
-      <div className="rounded-2xl border border-success-200 bg-success-50 p-8 text-center">
-        <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-success-100">
+      <div className="rounded-3xl border border-emerald-200 bg-white p-8 text-center shadow-xl shadow-slate-950/10">
+        <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-8 w-8 text-success-600"
+            className="h-8 w-8 text-emerald-700"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -87,17 +87,17 @@ export default function BookingForm({
             />
           </svg>
         </div>
-        <h2 className="mb-2 text-xl font-bold text-neutral-900">
+        <h2 className="mb-2 text-xl font-black text-slate-950">
           Thank you!
         </h2>
-        <p className="mb-6 text-neutral-600">
+        <p className="mb-6 text-slate-600">
           Your meet-and-greet request for{" "}
           <span className="font-semibold">{petName}</span> has been submitted.
           We&apos;ll be in touch soon to confirm your visit.
         </p>
         <a
           href={`/pets/${petSlug}`}
-          className="inline-block rounded-xl bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-700"
+          className="inline-block rounded-full bg-slate-950 px-6 py-2.5 text-sm font-black uppercase tracking-[0.14em] text-white transition hover:bg-amber-500 hover:text-slate-950"
         >
           Back to {petName}
         </a>
@@ -108,11 +108,11 @@ export default function BookingForm({
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+      className="space-y-5 rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-950/10 ring-1 ring-white/70"
     >
       {serverError && (
         <div
-          className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 ring-1 ring-red-200"
           role="alert"
         >
           {serverError}
@@ -122,7 +122,7 @@ export default function BookingForm({
       <div>
         <label
           htmlFor="name"
-          className="mb-1 block text-sm font-medium text-neutral-700"
+          className="mb-1 block text-sm font-bold text-slate-700"
         >
           Full Name <span className="text-red-500">*</span>
         </label>
@@ -131,7 +131,7 @@ export default function BookingForm({
           type="text"
           autoComplete="name"
           {...register("name")}
-          className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm text-neutral-900 transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
+          className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
           aria-invalid={errors.name ? "true" : undefined}
           aria-describedby={errors.name ? "name-error" : undefined}
         />
@@ -145,7 +145,7 @@ export default function BookingForm({
       <div>
         <label
           htmlFor="email"
-          className="mb-1 block text-sm font-medium text-neutral-700"
+          className="mb-1 block text-sm font-bold text-slate-700"
         >
           Email <span className="text-red-500">*</span>
         </label>
@@ -154,7 +154,7 @@ export default function BookingForm({
           type="email"
           autoComplete="email"
           {...register("email")}
-          className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm text-neutral-900 transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
+          className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
           aria-invalid={errors.email ? "true" : undefined}
           aria-describedby={errors.email ? "email-error" : undefined}
         />
@@ -168,56 +168,56 @@ export default function BookingForm({
       <div>
         <label
           htmlFor="phone"
-          className="mb-1 block text-sm font-medium text-neutral-700"
+          className="mb-1 block text-sm font-bold text-slate-700"
         >
-          Phone <span className="text-neutral-400">(optional)</span>
+          Phone <span className="text-slate-400">(optional)</span>
         </label>
         <input
           id="phone"
           type="tel"
           autoComplete="tel"
           {...register("phone")}
-          className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm text-neutral-900 transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
+          className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
         />
       </div>
 
       <div>
         <label
           htmlFor="preferredDates"
-          className="mb-1 block text-sm font-medium text-neutral-700"
+          className="mb-1 block text-sm font-bold text-slate-700"
         >
           Preferred Dates{" "}
-          <span className="text-neutral-400">(optional)</span>
+          <span className="text-slate-400">(optional)</span>
         </label>
         <input
           id="preferredDates"
           type="text"
           placeholder="e.g., Weekends, April 28-30"
           {...register("preferredDates")}
-          className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
+          className="w-full rounded-xl border border-slate-400 px-4 py-2.5 text-sm font-medium text-slate-950 placeholder:font-semibold placeholder:text-slate-600 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
         />
       </div>
 
       <div>
         <label
           htmlFor="message"
-          className="mb-1 block text-sm font-medium text-neutral-700"
+          className="mb-1 block text-sm font-bold text-slate-700"
         >
-          Message <span className="text-neutral-400">(optional)</span>
+          Message <span className="text-slate-400">(optional)</span>
         </label>
         <textarea
           id="message"
           rows={4}
           placeholder="Tell us about your home, experience with pets, or any questions..."
           {...register("message")}
-          className="w-full resize-y rounded-xl border border-neutral-300 px-4 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
+          className="w-full resize-y rounded-xl border border-slate-400 px-4 py-2.5 text-sm font-medium text-slate-950 placeholder:font-semibold placeholder:text-slate-600 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
         />
       </div>
 
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-xl bg-primary-600 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-full bg-slate-950 py-3 text-sm font-black uppercase tracking-[0.14em] text-white transition hover:bg-amber-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isSubmitting ? "Submitting..." : "Submit Booking Request"}
       </button>

@@ -3,6 +3,7 @@ import Script from "next/script";
 
 const navLinks = [
   { href: "/", label: "Home" },
+  { href: "/about", label: "About" },
   { href: "/pets", label: "Pets" },
   { href: "/match", label: "Find Your Match" },
 ];
@@ -19,16 +20,16 @@ export default function PublicLayout({
         strategy="beforeInteractive"
       />
 
-      <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-amber-200/30 bg-slate-950/95 shadow-2xl shadow-slate-950/20 backdrop-blur">
         <nav
-          className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6"
+          className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6"
           aria-label="Main navigation"
         >
           <Link
             href="/"
-            className="text-xl font-bold tracking-tight text-neutral-900"
+            className="text-lg font-black tracking-tight text-white sm:text-xl"
           >
-            Hart County Animal Rescue
+            Hart County <span className="text-amber-300">Animal Rescue</span>
           </Link>
 
           <div className="flex items-center gap-6">
@@ -37,7 +38,7 @@ export default function PublicLayout({
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm font-medium text-neutral-600 transition hover:text-neutral-900"
+                    className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-300 transition hover:text-amber-200"
                   >
                     {link.label}
                   </Link>
@@ -47,7 +48,7 @@ export default function PublicLayout({
 
             <Link
               href="/donate"
-              className="rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-600"
+              className="rounded-full bg-amber-400 px-5 py-2.5 text-sm font-black uppercase tracking-[0.16em] text-slate-950 shadow-lg shadow-amber-950/30 transition hover:bg-amber-300"
               aria-label="Donate to Hart County Animal Rescue"
             >
               Donate
@@ -61,7 +62,7 @@ export default function PublicLayout({
       {/* Sticky donate button */}
       <Link
         href="/donate"
-        className="fixed top-4 right-4 z-50 rounded-lg bg-green-500 px-6 py-3 text-white shadow-lg transition hover:bg-green-600 md:top-6 md:right-6"
+        className="fixed right-4 bottom-4 z-50 rounded-full border border-amber-200 bg-slate-950 px-6 py-3 text-sm font-black uppercase tracking-[0.16em] text-amber-200 shadow-2xl shadow-slate-950/30 transition hover:bg-slate-900 md:right-6 md:bottom-6"
         aria-label="Donate Now"
       >
         Donate Now

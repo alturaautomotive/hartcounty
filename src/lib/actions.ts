@@ -7,7 +7,11 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import Papa from "papaparse";
 import { createToken, verifyToken } from "./auth";
+import { getAllAdminEmails } from "@/lib/queries";
 import { z } from "zod";
+import crypto from "crypto";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 
 export type SurveyMatchesData = {
   name: string;
@@ -28,6 +32,8 @@ export async function sendSurveyMatches(
       .map((name, i) => `<li><a href="${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/pets">${name}</a></li>`)
       .join("");
 
+    const adminEmails = await getAllAdminEmails();
+
     if (process.env.SMTP_HOST) {
       try {
         const transporter = nodemailer.createTransport({
@@ -46,7 +52,7 @@ export async function sendSurveyMatches(
         await transporter.sendMail({
           from: process.env.EMAIL_FROM ?? "noreply@hcars.org",
           to: data.email,
-          cc: "shelter@hcars.org",
+          cc: ["shelter@hcars.org", ...adminEmails],
           subject: "Your Pet Matches from Hart County Animal Rescue",
           html: `
             <h2>Hi ${data.name}!</h2>
@@ -101,6 +107,8 @@ export async function createBooking(data: BookingData): Promise<BookingResult> {
     const pet = await prisma.pet.findUnique({ where: { id: data.petId } });
 
     // Send notification email
+    const adminEmails = await getAllAdminEmails();
+
     if (process.env.SMTP_HOST) {
       try {
         const transporter = nodemailer.createTransport({
@@ -119,6 +127,7 @@ export async function createBooking(data: BookingData): Promise<BookingResult> {
         await transporter.sendMail({
           from: process.env.EMAIL_FROM ?? "noreply@hcars.org",
           to: "shelter@hcars.org",
+          cc: adminEmails,
           subject: `New Meet-and-Greet Request: ${pet?.name ?? "Unknown Pet"}`,
           html: `
             <h2>New Meet-and-Greet Booking</h2>
@@ -152,6 +161,72 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+const imageTypes: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+
+const maxImageSize = 5 * 1024 * 1024;
+
+async function getCurrentAdmin() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("admin-token")?.value;
+  const session = token ? verifyToken(token) : null;
+  if (!session) return null;
+
+  return prisma.adminUser.findUnique({
+    where: { id: session.userId },
+    select: { id: true, email: true, role: true, name: true },
+  });
+}
+
+async function requireAdmin() {
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    throw new Error("You must be signed in to manage this content.");
+  }
+  return admin;
+}
+
+async function requireSuperAdmin() {
+  const admin = await getCurrentAdmin();
+  if (!admin || admin.role !== "super_admin") {
+    throw new Error("Only the super admin can manage admin users.");
+  }
+  return admin;
+}
+
+async function saveUploadedImage(file: File | null, folder: "pets" | "team") {
+  if (!file || file.size === 0) return null;
+  if (!imageTypes[file.type]) {
+    throw new Error("Upload a JPG, PNG, GIF, or WebP image.");
+  }
+  if (file.size > maxImageSize) {
+    throw new Error("Images must be 5MB or smaller.");
+  }
+
+  const extension = imageTypes[file.type];
+  const uploadDir = path.join(process.cwd(), "public", "uploads", folder);
+  await mkdir(uploadDir, { recursive: true });
+
+  const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extension}`;
+  const bytes = Buffer.from(await file.arrayBuffer());
+  await writeFile(path.join(uploadDir, filename), bytes);
+
+  return `/uploads/${folder}/${filename}`;
+}
+
+function initialsFor(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
 export async function loginAction(formData: FormData): Promise<LoginResult> {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
@@ -174,7 +249,11 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
     return { success: false, error: "Invalid email or password." };
   }
 
-  const token = createToken(user.id, user.email);
+  const token = createToken(
+    user.id,
+    user.email,
+    user.role === "super_admin" ? "super_admin" : "manager"
+  );
   const cookieStore = await cookies();
   cookieStore.set("admin-token", token, {
     httpOnly: true,
@@ -186,6 +265,174 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
   return { success: true };
 }
 
+export type ForgotPasswordResult =
+  | { success: true; message: string }
+  | { success: false; error: string };
+
+export type ResetPasswordResult =
+  | { success: true; message: string }
+  | { success: false; error: string };
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1),
+    password: z.string().min(8, "Password must be at least 8 characters."),
+    confirmPassword: z.string().min(8),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
+function getBaseUrl() {
+  return (
+    process.env.NEXT_PUBLIC_BASE_URL ??
+    process.env.VERCEL_URL?.replace(/^/, "https://") ??
+    "http://localhost:3000"
+  );
+}
+
+function hashResetToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+async function sendPasswordResetEmail(email: string, resetUrl: string) {
+  if (process.env.SMTP_HOST) {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || "1025"),
+      secure: false,
+      auth:
+        process.env.SMTP_USER && process.env.SMTP_PASS
+          ? {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS,
+            }
+          : undefined,
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM ?? "noreply@hcars.org",
+      to: email,
+      subject: "Reset your Hart County admin password",
+      html: `
+        <h2>Password Reset</h2>
+        <p>Use the link below to reset your Hart County Animal Rescue admin password. This link expires in 1 hour.</p>
+        <p><a href="${resetUrl}">Reset your password</a></p>
+        <p>If you did not request this, you can ignore this email.</p>
+      `,
+    });
+  } else {
+    console.log(`Password reset link for ${email}: ${resetUrl}`);
+  }
+}
+
+export async function requestPasswordResetAction(
+  formData: FormData
+): Promise<ForgotPasswordResult> {
+  const parsed = forgotPasswordSchema.safeParse({
+    email: formData.get("email"),
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: "Enter a valid email address." };
+  }
+
+  const genericMessage =
+    "If that email belongs to an admin account, a reset link has been sent.";
+  const email = parsed.data.email.toLowerCase();
+  const user = await prisma.adminUser.findUnique({ where: { email } });
+
+  if (!user) {
+    return { success: true, message: genericMessage };
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hashResetToken(token);
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+  await prisma.passwordResetToken.create({
+    data: {
+      tokenHash,
+      adminId: user.id,
+      expiresAt,
+    },
+  });
+
+  const resetUrl = `${getBaseUrl()}/admin/reset-password?token=${token}`;
+
+  try {
+    await sendPasswordResetEmail(user.email, resetUrl);
+  } catch (error) {
+    console.error("Failed to send password reset email:", error);
+    return {
+      success: false,
+      error: "We could not send the reset email. Please try again.",
+    };
+  }
+
+  return { success: true, message: genericMessage };
+}
+
+export async function resetPasswordAction(
+  formData: FormData
+): Promise<ResetPasswordResult> {
+  const parsed = resetPasswordSchema.safeParse({
+    token: formData.get("token"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Enter a valid password.",
+    };
+  }
+
+  const { token, password } = parsed.data;
+  const tokenHash = hashResetToken(token);
+  const resetToken = await prisma.passwordResetToken.findUnique({
+    where: { tokenHash },
+  });
+
+  if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date()) {
+    return {
+      success: false,
+      error: "This reset link is invalid or expired. Request a new one.",
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  await prisma.$transaction([
+    prisma.adminUser.update({
+      where: { id: resetToken.adminId },
+      data: { passwordHash },
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { usedAt: new Date() },
+    }),
+    prisma.passwordResetToken.deleteMany({
+      where: {
+        adminId: resetToken.adminId,
+        usedAt: null,
+        id: { not: resetToken.id },
+      },
+    }),
+  ]);
+
+  return {
+    success: true,
+    message: "Your password has been reset. You can sign in now.",
+  };
+}
+
 export async function logoutAction(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete("admin-token");
@@ -194,12 +441,152 @@ export async function logoutAction(): Promise<void> {
 export async function createAdminUser(
   email: string,
   password: string,
-  name?: string
+  name?: string,
+  role: "super_admin" | "manager" = "manager"
 ) {
   const passwordHash = await bcrypt.hash(password, 10);
   return prisma.adminUser.create({
-    data: { email, passwordHash, name: name ?? null },
+    data: { email, passwordHash, name: name ?? null, role },
   });
+}
+
+const adminUserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().max(100).optional(),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+  role: z.enum(["super_admin", "manager"]),
+});
+
+const updateAdminUserSchema = z.object({
+  id: z.string().min(1),
+  email: z.string().email(),
+  name: z.string().max(100).optional(),
+  password: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim() ?? "")
+    .refine((value) => value.length === 0 || value.length >= 8, {
+      message: "Password must be at least 8 characters.",
+    }),
+  role: z.enum(["super_admin", "manager"]),
+});
+
+export async function createAdminUserAction(
+  formData: FormData
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    await requireSuperAdmin();
+    const parsed = adminUserSchema.safeParse({
+      email: formData.get("email"),
+      name: formData.get("name") || undefined,
+      password: formData.get("password"),
+      role: formData.get("role"),
+    });
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "Invalid admin user.",
+      };
+    }
+
+    await createAdminUser(
+      parsed.data.email.toLowerCase(),
+      parsed.data.password,
+      parsed.data.name,
+      parsed.data.role
+    );
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to create admin user:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create admin user.",
+    };
+  }
+}
+
+export async function updateAdminUserAction(
+  formData: FormData
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    await requireSuperAdmin();
+    const parsed = updateAdminUserSchema.safeParse({
+      id: formData.get("id"),
+      email: formData.get("email"),
+      name: formData.get("name") || undefined,
+      password: formData.get("password") || "",
+      role: formData.get("role"),
+    });
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "Invalid admin user.",
+      };
+    }
+
+    const data: {
+      email: string;
+      name: string | null;
+      role: "super_admin" | "manager";
+      passwordHash?: string;
+    } = {
+      email: parsed.data.email.toLowerCase(),
+      name: parsed.data.name?.trim() || null,
+      role: parsed.data.role,
+    };
+
+    if (parsed.data.password) {
+      data.passwordHash = await bcrypt.hash(parsed.data.password, 10);
+    }
+
+    await prisma.adminUser.update({
+      where: { id: parsed.data.id },
+      data,
+    });
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update admin user:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to update admin user.",
+    };
+  }
+}
+
+export async function deleteAdminUserAction(
+  formData: FormData
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const currentAdmin = await requireSuperAdmin();
+    const id = formData.get("id") as string | null;
+    if (!id) return { success: false, error: "Missing user ID." };
+    if (id === currentAdmin.id) {
+      return { success: false, error: "You cannot delete your own account." };
+    }
+
+    await prisma.adminUser.delete({ where: { id } });
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete admin user:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to delete admin user.",
+    };
+  }
 }
 
 // ─── Pet Mutations ───────────────────────────────────────────────────
@@ -214,36 +601,56 @@ export async function updatePet(
 }
 
 export async function updatePetFields(formData: FormData): Promise<{ success: true } | { success: false; error: string }> {
-  const id = formData.get("id") as string;
-  if (!id) return { success: false, error: "Missing pet ID." };
+  try {
+    await requireAdmin();
+    const id = formData.get("id") as string;
+    if (!id) return { success: false, error: "Missing pet ID." };
 
-  const data: Record<string, unknown> = {};
-  const stringFields = ["name", "breed", "species", "ageCategory", "sex", "size", "weight", "color", "description", "status", "imageUrl", "specialNeeds", "energyLevel"];
-  for (const field of stringFields) {
-    const val = formData.get(field);
-    if (val !== null) {
-      data[field] = (val as string).trim() || null;
+    const data: Record<string, unknown> = {};
+    const stringFields = ["name", "breed", "species", "ageCategory", "sex", "size", "weight", "color", "description", "status", "imageUrl", "specialNeeds", "energyLevel"];
+    for (const field of stringFields) {
+      const val = formData.get(field);
+      if (val !== null) {
+        data[field] = (val as string).trim() || null;
+      }
     }
-  }
-  // Non-nullable fields
-  if (data.name === null) return { success: false, error: "Name is required." };
-  if (data.species === null) data.species = "dog";
-  if (data.status === null) data.status = "available";
+    // Non-nullable fields
+    if (data.name === null) return { success: false, error: "Name is required." };
+    if (data.species === null) data.species = "dog";
+    if (data.status === null) data.status = "available";
 
-  const priceVal = formData.get("price");
-  if (priceVal !== null) {
-    const parsed = parseFloat(priceVal as string);
-    data.price = isNaN(parsed) ? null : parsed;
-    data.adoptionFee = data.price;
-  }
+    const imageFile = formData.get("imageFile");
+    const uploadedImageUrl = await saveUploadedImage(
+      imageFile instanceof File ? imageFile : null,
+      "pets"
+    );
+    if (uploadedImageUrl) {
+      data.imageUrl = uploadedImageUrl;
+    }
 
-  await prisma.pet.update({ where: { id }, data });
-  revalidatePath("/admin/pets");
-  revalidatePath("/pets");
-  return { success: true };
+    const priceVal = formData.get("price");
+    if (priceVal !== null) {
+      const parsed = parseFloat(priceVal as string);
+      data.price = isNaN(parsed) ? null : parsed;
+      data.adoptionFee = data.price;
+    }
+
+    await prisma.pet.update({ where: { id }, data });
+    revalidatePath("/admin/pets");
+    revalidatePath("/pets");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update pet:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update pet.",
+    };
+  }
 }
 
 export async function updatePetStatus(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
   if (!id || !status) return;
@@ -253,6 +660,7 @@ export async function updatePetStatus(formData: FormData): Promise<void> {
 }
 
 export async function deletePet(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = formData.get("id") as string;
   if (!id) return;
   // Delete related bookings and donations first
@@ -261,6 +669,104 @@ export async function deletePet(formData: FormData): Promise<void> {
   await prisma.pet.delete({ where: { id } });
   revalidatePath("/admin/pets");
   revalidatePath("/pets");
+}
+
+const teamMemberSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "Name is required.").max(100),
+  role: z.string().min(1, "Role is required.").max(100),
+  bio: z.string().min(1, "Bio is required.").max(500),
+  initials: z.string().max(6).optional(),
+  imageUrl: z.string().optional(),
+  sortOrder: z.coerce.number().int().min(0).default(0),
+  isActive: z.boolean().default(false),
+});
+
+export async function saveTeamMemberAction(
+  formData: FormData
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    await requireAdmin();
+    const parsed = teamMemberSchema.safeParse({
+      id: formData.get("id") || undefined,
+      name: formData.get("name"),
+      role: formData.get("role"),
+      bio: formData.get("bio"),
+      initials: formData.get("initials") || undefined,
+      imageUrl: formData.get("imageUrl") || undefined,
+      sortOrder: formData.get("sortOrder") || 0,
+      isActive: formData.get("isActive") === "on",
+    });
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "Invalid team member.",
+      };
+    }
+
+    const imageFile = formData.get("imageFile");
+    const uploadedImageUrl = await saveUploadedImage(
+      imageFile instanceof File ? imageFile : null,
+      "team"
+    );
+    const initials =
+      parsed.data.initials?.trim().toUpperCase() || initialsFor(parsed.data.name);
+    const data = {
+      name: parsed.data.name.trim(),
+      role: parsed.data.role.trim(),
+      bio: parsed.data.bio.trim(),
+      initials,
+      imageUrl: uploadedImageUrl ?? (parsed.data.imageUrl?.trim() || null),
+      sortOrder: parsed.data.sortOrder,
+      isActive: parsed.data.isActive,
+    };
+
+    if (parsed.data.id) {
+      await prisma.teamMember.update({
+        where: { id: parsed.data.id },
+        data,
+      });
+    } else {
+      await prisma.teamMember.create({ data });
+    }
+
+    revalidatePath("/admin/team");
+    revalidatePath("/about");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to save team member:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to save team member.",
+    };
+  }
+}
+
+export async function deleteTeamMemberAction(
+  formData: FormData
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    await requireAdmin();
+    const id = formData.get("id") as string | null;
+    if (!id) return { success: false, error: "Missing team member ID." };
+    await prisma.teamMember.delete({ where: { id } });
+    revalidatePath("/admin/team");
+    revalidatePath("/about");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete team member:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to delete team member.",
+    };
+  }
 }
 
 function toSlug(name: string): string {

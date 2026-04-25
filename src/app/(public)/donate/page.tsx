@@ -8,12 +8,15 @@ export const metadata = {
 
 export default function DonatePage() {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+    <main className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
       <section className="mb-12 text-center">
-        <h1 className="mb-4 text-4xl font-bold tracking-tight text-neutral-900">
+        <p className="mb-4 text-sm font-black uppercase tracking-[0.28em] text-amber-700">
+          Premier giving circle
+        </p>
+        <h1 className="mb-4 text-5xl font-black tracking-tight text-slate-950">
           Support Our Rescue
         </h1>
-        <p className="mx-auto max-w-2xl text-lg text-neutral-600">
+        <p className="mx-auto max-w-2xl text-lg leading-8 text-slate-600">
           Every donation directly funds the care, medical treatment, and
           rehoming of animals in Hart County. Choose an amount below to make a
           difference today.
@@ -21,40 +24,40 @@ export default function DonatePage() {
       </section>
 
       <section className="mb-12">
-        <h2 className="mb-6 text-center text-xl font-semibold text-neutral-800">
+        <h2 className="mb-6 text-center text-xl font-black text-slate-900">
           One-Time Donation
         </h2>
         <DonateButtons />
       </section>
 
-      <section className="rounded-2xl border border-neutral-200 bg-neutral-50 p-8">
-        <h2 className="mb-4 text-xl font-semibold text-neutral-800">
+      <section className="rounded-3xl border border-amber-200/70 bg-slate-950 p-8 text-white shadow-2xl shadow-slate-950/20">
+        <h2 className="mb-4 text-2xl font-black text-white">
           Your Impact
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-neutral-200">
-                <th className="pb-2 font-semibold text-neutral-700">Amount</th>
-                <th className="pb-2 font-semibold text-neutral-700">What It Provides</th>
+              <tr className="border-b border-amber-200/30">
+                <th className="pb-3 font-black uppercase tracking-[0.14em] text-amber-200">Amount</th>
+                <th className="pb-3 font-black uppercase tracking-[0.14em] text-amber-200">What It Provides</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
+            <tbody className="divide-y divide-white/10">
               <tr>
-                <td className="py-2 font-medium text-neutral-900">$25</td>
-                <td className="py-2 text-neutral-600">Vaccines &amp; preventive care for one pet</td>
+                <td className="py-3 font-black text-white">$25</td>
+                <td className="py-3 text-slate-300">Vaccines &amp; preventive care for one pet</td>
               </tr>
               <tr>
-                <td className="py-2 font-medium text-neutral-900">$50</td>
-                <td className="py-2 text-neutral-600">One month of food &amp; daily care</td>
+                <td className="py-3 font-black text-white">$50</td>
+                <td className="py-3 text-slate-300">One month of food &amp; daily care</td>
               </tr>
               <tr>
-                <td className="py-2 font-medium text-neutral-900">$100</td>
-                <td className="py-2 text-neutral-600">Full medical checkup &amp; spay/neuter</td>
+                <td className="py-3 font-black text-white">$100</td>
+                <td className="py-3 text-slate-300">Full medical checkup &amp; spay/neuter</td>
               </tr>
               <tr>
-                <td className="py-2 font-medium text-neutral-900">$250+</td>
-                <td className="py-2 text-neutral-600">Emergency surgery or critical care</td>
+                <td className="py-3 font-black text-white">$250+</td>
+                <td className="py-3 text-slate-300">Emergency surgery or critical care</td>
               </tr>
             </tbody>
           </table>

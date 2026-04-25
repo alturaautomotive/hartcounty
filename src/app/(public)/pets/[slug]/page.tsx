@@ -44,7 +44,7 @@ export default async function PetDetailPage({
         {/* Back link */}
         <Link
           href="/pets"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 transition hover:text-neutral-900"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm font-bold text-slate-600 transition hover:text-amber-700"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -66,7 +66,7 @@ export default async function PetDetailPage({
 
         <div className="grid gap-8 md:grid-cols-2">
           {/* Hero image */}
-          <div className="relative aspect-[2/3] overflow-hidden rounded-2xl bg-neutral-100">
+          <div className="relative aspect-[2/3] overflow-hidden rounded-3xl bg-slate-900 shadow-2xl shadow-slate-950/20 ring-1 ring-white/70">
             {pet.imageUrl ? (
               <Image
                 src={pet.imageUrl}
@@ -77,7 +77,7 @@ export default async function PetDetailPage({
                 priority
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-neutral-400">
+              <div className="flex h-full items-center justify-center text-amber-200">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-24 w-24"
@@ -96,20 +96,20 @@ export default async function PetDetailPage({
               </div>
             )}
             {pet.energyLevel && (
-              <span className="absolute top-4 right-4 rounded-full bg-white/90 px-3 py-1 text-sm font-medium capitalize text-neutral-700 backdrop-blur">
+              <span className="absolute top-4 right-4 rounded-full border border-white/30 bg-slate-950/85 px-4 py-1.5 text-sm font-black uppercase tracking-[0.12em] text-amber-200 backdrop-blur">
                 {pet.energyLevel} energy
               </span>
             )}
           </div>
 
           {/* Details */}
-          <div>
+          <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-950/10 ring-1 ring-white/70">
             <div className="mb-4 flex items-start justify-between gap-3">
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+              <h1 className="text-5xl font-black tracking-tight text-slate-950">
                 {pet.name}
               </h1>
               {fee != null && (
-                <span className="shrink-0 text-2xl font-bold text-primary-600">
+                <span className="shrink-0 rounded-full bg-amber-100 px-4 py-2 text-xl font-black text-amber-800">
                   ${fee.toFixed(0)}
                 </span>
               )}
@@ -129,12 +129,12 @@ export default async function PetDetailPage({
                 .map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-xl bg-neutral-50 px-3 py-2"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
                   >
-                    <p className="text-xs font-medium text-neutral-500">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
                       {item.label}
                     </p>
-                    <p className="text-sm font-semibold capitalize text-neutral-900">
+                    <p className="mt-1 text-sm font-black capitalize text-slate-950">
                       {item.value}
                     </p>
                   </div>
@@ -148,7 +148,7 @@ export default async function PetDetailPage({
                   pet[key] && (
                     <span
                       key={key}
-                      className="rounded-full bg-success-50 px-3 py-1 text-sm font-medium text-success-600"
+                      className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-800 ring-1 ring-emerald-200"
                     >
                       {label}
                     </span>
@@ -158,11 +158,11 @@ export default async function PetDetailPage({
 
             {/* Special needs */}
             {pet.specialNeeds && (
-              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-                <p className="text-sm font-semibold text-amber-800">
+              <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-sm font-black text-amber-900">
                   Special Needs
                 </p>
-                <p className="mt-1 text-sm text-amber-700">
+                <p className="mt-1 text-sm text-amber-800">
                   {pet.specialNeeds}
                 </p>
               </div>
@@ -171,10 +171,10 @@ export default async function PetDetailPage({
             {/* Description */}
             {pet.description && (
               <div className="mb-8">
-                <h2 className="mb-2 text-lg font-semibold text-neutral-900">
+                <h2 className="mb-2 text-xl font-black text-slate-950">
                   About {pet.name}
                 </h2>
-                <ul className="list-inside list-disc space-y-1.5 text-neutral-600">
+                <ul className="list-inside list-disc space-y-1.5 leading-7 text-slate-600">
                   {pet.description
                     .split(/\.\s+/)
                     .filter(Boolean)
@@ -189,7 +189,7 @@ export default async function PetDetailPage({
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
                 href={`/book/${pet.slug}`}
-                className="flex-1 rounded-xl bg-primary-600 py-3 text-center text-sm font-semibold text-white transition hover:bg-primary-700"
+                className="flex-1 rounded-full bg-slate-950 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition hover:bg-amber-500 hover:text-slate-950"
                 aria-label={`Book a meet-and-greet with ${pet.name}`}
               >
                 Book Meet-and-Greet

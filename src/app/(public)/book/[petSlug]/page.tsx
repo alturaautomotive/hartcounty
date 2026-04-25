@@ -33,7 +33,7 @@ export default async function BookingPage({
         {/* Back link */}
         <Link
           href={`/pets/${pet.slug}`}
-          className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 transition hover:text-neutral-900"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm font-bold text-slate-600 transition hover:text-amber-700"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -54,8 +54,8 @@ export default async function BookingPage({
         </Link>
 
         {/* Pet hero */}
-        <div className="mb-8 flex items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
+        <div className="mb-8 flex items-center gap-4 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-xl shadow-slate-950/10 ring-1 ring-white/70">
+          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-900">
             {pet.imageUrl ? (
               <Image
                 src={pet.imageUrl}
@@ -65,7 +65,7 @@ export default async function BookingPage({
                 className="object-cover"
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-neutral-400">
+              <div className="flex h-full items-center justify-center text-amber-200">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-8 w-8"
@@ -85,27 +85,27 @@ export default async function BookingPage({
             )}
           </div>
           <div>
-            <h1 className="text-xl font-bold text-neutral-900">
+            <h1 className="text-2xl font-black text-slate-950">
               Book a Meet-and-Greet
             </h1>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm font-semibold text-slate-500">
               with{" "}
-              <span className="font-semibold text-neutral-700">{pet.name}</span>
+              <span className="font-black text-slate-800">{pet.name}</span>
               {pet.breed ? ` - ${pet.breed}` : ""}
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
               {fee != null && (
-                <span className="text-lg font-bold text-primary-600">
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-black text-amber-800">
                   ${fee.toFixed(0)}
                 </span>
               )}
               {pet.vaccinated && (
-                <span className="rounded-full bg-success-50 px-2.5 py-0.5 text-xs font-medium text-success-600">
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 ring-1 ring-emerald-200">
                   Vaccinated
                 </span>
               )}
               {pet.spayedNeutered && (
-                <span className="rounded-full bg-success-50 px-2.5 py-0.5 text-xs font-medium text-success-600">
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 ring-1 ring-emerald-200">
                   Spayed/Neutered
                 </span>
               )}

@@ -71,15 +71,15 @@ export default function DonateButtons() {
 
   if (thankYou) {
     return (
-      <div className="rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
-        <h2 className="mb-2 text-2xl font-bold text-green-700">Thank You!</h2>
-        <p className="text-green-600">
+      <div className="rounded-3xl border border-emerald-200 bg-white p-8 text-center shadow-xl shadow-slate-950/10">
+        <h2 className="mb-2 text-2xl font-black text-emerald-800">Thank You!</h2>
+        <p className="text-slate-600">
           Your donation helps us rescue, rehabilitate, and rehome animals in
           Hart County. We truly appreciate your support.
         </p>
         <button
           type="button"
-          className="mt-4 rounded-lg bg-green-500 px-6 py-2 text-sm font-semibold text-white hover:bg-green-600"
+          className="mt-4 rounded-full bg-slate-950 px-6 py-2.5 text-sm font-black uppercase tracking-[0.14em] text-white hover:bg-amber-500 hover:text-slate-950"
           onClick={() => setThankYou(false)}
         >
           Make Another Donation
@@ -93,10 +93,10 @@ export default function DonateButtons() {
       {AMOUNTS.map((amt) => (
         <div
           key={amt}
-          className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+          className="rounded-3xl border border-amber-200/70 bg-white/90 p-6 shadow-xl shadow-slate-950/10 ring-1 ring-white/70 transition hover:-translate-y-1 hover:shadow-2xl"
         >
-          <p className="mb-1 text-3xl font-bold text-neutral-900">${amt}</p>
-          <p className="mb-4 text-sm text-neutral-500">{IMPACT[amt]}</p>
+          <p className="mb-1 text-4xl font-black text-slate-950">${amt}</p>
+          <p className="mb-4 text-sm font-semibold text-slate-600">{IMPACT[amt]}</p>
           <div id={`paypal-btn-${amt}`} className="min-h-[45px]" />
         </div>
       ))}

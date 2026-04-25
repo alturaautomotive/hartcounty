@@ -63,7 +63,7 @@ export default function SponsorButton({
 
   if (thankYou) {
     return (
-      <div className="flex-1 rounded-xl border-2 border-green-500 bg-green-50 py-3 text-center text-sm font-semibold text-green-600">
+      <div className="flex-1 rounded-full border-2 border-emerald-400 bg-emerald-50 py-3 text-center text-sm font-black text-emerald-800">
         Thank you for sponsoring {petName}!
       </div>
     );
@@ -71,8 +71,8 @@ export default function SponsorButton({
 
   return (
     <div className="flex-1">
-      <p className="mb-2 text-center text-sm font-semibold text-green-600">
-        Sponsor {petName} — $25
+      <p className="mb-2 text-center text-sm font-black uppercase tracking-[0.14em] text-amber-700">
+        Sponsor {petName} - $25
       </p>
       <div ref={containerRef} className="min-h-[45px]" />
     </div>

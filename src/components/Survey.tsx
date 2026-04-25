@@ -140,7 +140,7 @@ export default function Survey({ initialPets }: { initialPets: Pet[] }) {
     <div className="mx-auto max-w-2xl px-4 py-10">
       {/* Progress bar */}
       <div className="mb-8" role="progressbar" aria-valuenow={step + 1} aria-valuemin={1} aria-valuemax={TOTAL_STEPS} aria-label={`Step ${step + 1} of ${TOTAL_STEPS}`}>
-        <div className="mb-2 flex justify-between text-sm text-neutral-500">
+        <div className="mb-2 flex justify-between text-sm font-bold text-slate-600">
           <span>Step {step + 1} of {TOTAL_STEPS}</span>
           <span>{Math.round(((step + 1) / TOTAL_STEPS) * 100)}%</span>
         </div>
@@ -149,7 +149,7 @@ export default function Survey({ initialPets }: { initialPets: Pet[] }) {
             <div
               key={i}
               className={`h-2 flex-1 rounded-full transition-colors ${
-                i <= step ? "bg-primary-600" : "bg-neutral-200"
+                i <= step ? "bg-amber-500" : "bg-slate-200"
               }`}
             />
           ))}
@@ -197,10 +197,13 @@ function StepForm({
   const fieldValue = watch(currentStep.field);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6 rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-950/10 ring-1 ring-white/70"
+    >
       <div>
-        <h2 className="text-2xl font-bold text-neutral-900">{currentStep.title}</h2>
-        <p className="mt-1 text-neutral-500">{currentStep.description}</p>
+        <h2 className="text-3xl font-black text-slate-950">{currentStep.title}</h2>
+        <p className="mt-2 leading-7 text-slate-600">{currentStep.description}</p>
       </div>
 
       {currentStep.type === "boolean" ? (
@@ -215,8 +218,8 @@ function StepForm({
               onClick={() => setValue(currentStep.field, opt.value, { shouldValidate: true })}
               className={`flex-1 rounded-xl border-2 py-4 text-center text-lg font-semibold transition ${
                 fieldValue === opt.value
-                  ? "border-primary-600 bg-primary-50 text-primary-700"
-                  : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
+                  ? "border-slate-950 bg-slate-950 text-amber-200 shadow-lg shadow-slate-950/20"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-amber-400"
               }`}
               aria-pressed={fieldValue === opt.value}
             >
@@ -231,8 +234,8 @@ function StepForm({
               key={opt.value}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 px-4 py-3 transition ${
                 fieldValue === opt.value
-                  ? "border-primary-600 bg-primary-50"
-                  : "border-neutral-200 bg-white hover:border-neutral-300"
+                  ? "border-slate-950 bg-slate-950 text-white shadow-lg shadow-slate-950/20"
+                  : "border-slate-200 bg-white hover:border-amber-400"
               }`}
             >
               <input
@@ -244,15 +247,15 @@ function StepForm({
               <span
                 className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
                   fieldValue === opt.value
-                    ? "border-primary-600 bg-primary-600"
-                    : "border-neutral-300"
+                    ? "border-amber-400 bg-amber-400"
+                    : "border-slate-300"
                 }`}
               >
                 {fieldValue === opt.value && (
-                  <span className="h-2 w-2 rounded-full bg-white" />
+                  <span className="h-2 w-2 rounded-full bg-slate-950" />
                 )}
               </span>
-              <span className="font-medium text-neutral-800">{opt.label}</span>
+              <span className="font-semibold">{opt.label}</span>
             </label>
           ))}
         </div>
@@ -269,14 +272,14 @@ function StepForm({
           <button
             type="button"
             onClick={onBack}
-            className="rounded-xl border border-neutral-300 px-6 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50"
+            className="rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-bold text-slate-700 transition hover:border-amber-400"
           >
             Back
           </button>
         )}
         <button
           type="submit"
-          className="flex-1 rounded-xl bg-primary-600 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-primary-700"
+          className="flex-1 rounded-full bg-slate-950 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition hover:bg-amber-500 hover:text-slate-950"
         >
           {stepIndex === TOTAL_STEPS - 1 ? "See My Matches" : "Next"}
         </button>
@@ -309,8 +312,8 @@ function Results({
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-8 text-center">
-        <h2 className="text-3xl font-bold text-neutral-900">Your Top Matches</h2>
-        <p className="mt-2 text-neutral-500">
+        <h2 className="text-4xl font-black text-slate-950">Your Top Matches</h2>
+        <p className="mt-3 text-slate-600">
           {matches.length > 0
             ? "Based on your answers, here are the pets we think you'll love."
             : "We couldn't find a strong match right now. Browse all available pets or try again!"}
@@ -327,7 +330,7 @@ function Results({
         <div className="text-center">
           <a
             href="/pets"
-            className="inline-block rounded-xl bg-primary-600 px-6 py-3 font-semibold text-white transition hover:bg-primary-700"
+            className="inline-block rounded-full bg-slate-950 px-6 py-3 font-black uppercase tracking-[0.14em] text-white transition hover:bg-amber-500 hover:text-slate-950"
           >
             Browse All Pets
           </a>
@@ -336,11 +339,11 @@ function Results({
 
       {/* Email results form */}
       {matches.length > 0 && !emailSent && (
-        <div className="mx-auto mt-10 max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-1 text-lg font-semibold text-neutral-900">
+        <div className="mx-auto mt-10 max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-950/10">
+          <h3 className="mb-1 text-lg font-black text-slate-950">
             Email these matches to yourself
           </h3>
-          <p className="mb-4 text-sm text-neutral-500">
+          <p className="mb-4 text-sm text-slate-600">
             We'll send you a summary so you can review later.
           </p>
           <form onSubmit={handleSubmit(onEmailSubmit)} className="space-y-3">
@@ -348,7 +351,7 @@ function Results({
               <input
                 {...register("name")}
                 placeholder="Your name"
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                className="w-full rounded-xl border border-slate-400 px-3 py-2 text-sm font-medium text-slate-950 placeholder:font-semibold placeholder:text-slate-600 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
               />
               {errors.name && (
                 <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
@@ -359,7 +362,7 @@ function Results({
                 {...register("email")}
                 type="email"
                 placeholder="Your email"
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                className="w-full rounded-xl border border-slate-400 px-3 py-2 text-sm font-medium text-slate-950 placeholder:font-semibold placeholder:text-slate-600 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
               />
               {errors.email && (
                 <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
@@ -368,7 +371,7 @@ function Results({
             <button
               type="submit"
               disabled={emailSending}
-              className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:opacity-50"
+              className="w-full rounded-full bg-slate-950 py-2.5 text-sm font-black uppercase tracking-[0.14em] text-white transition hover:bg-amber-500 hover:text-slate-950 disabled:opacity-50"
             >
               {emailSending ? "Sending..." : "Send My Matches"}
             </button>
@@ -377,7 +380,7 @@ function Results({
       )}
 
       {emailSent && (
-        <div className="mx-auto mt-6 max-w-md rounded-lg bg-success-50 p-4 text-center text-sm font-medium text-success-700">
+        <div className="mx-auto mt-6 max-w-md rounded-2xl bg-emerald-50 p-4 text-center text-sm font-bold text-emerald-800 ring-1 ring-emerald-200">
           Your matches have been sent! Check your inbox.
         </div>
       )}
@@ -385,7 +388,7 @@ function Results({
       <div className="mt-8 text-center">
         <button
           onClick={onRestart}
-          className="text-sm font-medium text-primary-600 underline transition hover:text-primary-700"
+          className="text-sm font-bold text-slate-700 underline decoration-amber-500 decoration-2 underline-offset-4 transition hover:text-amber-700"
         >
           Start Over
         </button>

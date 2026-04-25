@@ -3,6 +3,11 @@ import type { NextRequest } from "next/server";
 import crypto from "crypto";
 
 const TOKEN_SECRET = process.env.ADMIN_SECRET ?? "hart-county-admin-secret-key";
+const publicAdminRoutes = new Set([
+  "/admin/login",
+  "/admin/forgot-password",
+  "/admin/reset-password",
+]);
 
 function verifyToken(token: string): boolean {
   try {
@@ -21,8 +26,8 @@ function verifyToken(token: string): boolean {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only protect /admin routes (not /admin/login)
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+  // Only protect admin routes that are not part of the sign-in/reset flow.
+  if (pathname.startsWith("/admin") && !publicAdminRoutes.has(pathname)) {
     const token = request.cookies.get("admin-token")?.value;
     if (!token || !verifyToken(token)) {
       const loginUrl = new URL("/admin/login", request.url);

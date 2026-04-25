@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { updatePetFields, deletePet } from "@/lib/actions";
 import { useRouter } from "next/navigation";
@@ -64,10 +65,48 @@ export default function EditablePetsTable({ pets }: { pets: Pet[] }) {
 
             if (isEditing) {
               return (
-                <tr key={pet.id} className="bg-blue-50/50">
+                <tr key={pet.id} className="bg-amber-50">
                   <td colSpan={8} className="p-3">
                     <form action={handleSave}>
                       <input type="hidden" name="id" value={pet.id} />
+                      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-white p-3 sm:flex-row sm:items-center">
+                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                          {pet.imageUrl ? (
+                            <Image
+                              src={pet.imageUrl}
+                              alt={pet.name}
+                              fill
+                              sizes="96px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs font-bold text-slate-500">
+                              No image
+                            </div>
+                          )}
+                        </div>
+                        <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                          <Field
+                            label="Image URL"
+                            name="imageUrl"
+                            defaultValue={pet.imageUrl ?? ""}
+                          />
+                          <div>
+                            <label className="mb-1 block text-xs font-bold text-slate-800">
+                              Upload New Image
+                            </label>
+                            <input
+                              name="imageFile"
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/gif"
+                              className="w-full rounded-lg border-2 border-slate-400 bg-white px-2 py-1.5 text-xs font-semibold text-slate-950 file:mr-3 file:rounded-md file:border-0 file:bg-slate-950 file:px-3 file:py-1 file:text-xs file:font-bold file:text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none"
+                            />
+                            <p className="mt-1 text-xs font-medium text-slate-600">
+                              JPG, PNG, GIF, or WebP. Max 5MB.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                         <Field label="Name" name="name" defaultValue={pet.name} required />
                         <Field label="Species" name="species" defaultValue={pet.species} />
@@ -78,13 +117,12 @@ export default function EditablePetsTable({ pets }: { pets: Pet[] }) {
                         <Field label="Weight" name="weight" defaultValue={pet.weight ?? ""} />
                         <Field label="Color" name="color" defaultValue={pet.color ?? ""} />
                         <Field label="Price" name="price" defaultValue={pet.price?.toString() ?? ""} type="number" />
-                        <Field label="Image URL" name="imageUrl" defaultValue={pet.imageUrl ?? ""} />
                         <div>
-                          <label className="mb-1 block text-xs font-medium text-neutral-600">Status</label>
+                          <label className="mb-1 block text-xs font-bold text-slate-800">Status</label>
                           <select
                             name="status"
                             defaultValue={pet.status}
-                            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-xs"
+                            className="w-full rounded-lg border-2 border-slate-400 bg-white px-2 py-1.5 text-xs font-semibold text-slate-950 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none"
                           >
                             <option value="available">Available</option>
                             <option value="adopted">Adopted</option>
@@ -94,12 +132,13 @@ export default function EditablePetsTable({ pets }: { pets: Pet[] }) {
                         </div>
                       </div>
                       <div className="col-span-full mt-2">
-                        <label className="mb-1 block text-xs font-medium text-neutral-600">Description</label>
+                        <label className="mb-1 block text-xs font-bold text-slate-800">Description</label>
                         <textarea
                           name="description"
                           defaultValue={pet.description ?? ""}
+                          placeholder="Add adoption notes, personality, care needs, or story"
                           rows={2}
-                          className="w-full rounded border border-neutral-300 px-2 py-1.5 text-xs"
+                          className="w-full rounded-lg border-2 border-slate-400 bg-white px-2 py-1.5 text-xs font-semibold text-slate-950 placeholder:text-slate-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none"
                         />
                       </div>
                       <div className="mt-3 flex gap-2">
@@ -197,14 +236,15 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-neutral-600">{label}</label>
+      <label className="mb-1 block text-xs font-bold text-slate-800">{label}</label>
       <input
         name={name}
         defaultValue={defaultValue}
+        placeholder={label}
         required={required}
         type={type}
         step={type === "number" ? "0.01" : undefined}
-        className="w-full rounded border border-neutral-300 px-2 py-1.5 text-xs"
+        className="w-full rounded-lg border-2 border-slate-400 bg-white px-2 py-1.5 text-xs font-semibold text-slate-950 placeholder:text-slate-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none"
       />
     </div>
   );

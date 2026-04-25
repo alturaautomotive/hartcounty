@@ -85,3 +85,37 @@ export async function getDashboardData() {
 export async function getAllPets() {
   return prisma.pet.findMany({ orderBy: { name: "asc" } });
 }
+
+export async function getActiveTeamMembers() {
+  return prisma.teamMember.findMany({
+    where: { isActive: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+}
+
+export async function getAllTeamMembers() {
+  return prisma.teamMember.findMany({
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+}
+
+export async function getAdminUsers() {
+  return prisma.adminUser.findMany({
+    orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
+export async function getAllAdminEmails(): Promise<string[]> {
+  const admins = await prisma.adminUser.findMany({
+    select: { email: true },
+  });
+  return admins.map((a) => a.email).filter(Boolean);
+}
