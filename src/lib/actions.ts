@@ -137,6 +137,79 @@ export async function sendSurveyMatches(
   }
 }
 
+export async function sendMatchesToClient(data: {
+  name: string;
+  email: string;
+  matchIds: string[];
+  matchNames: string[];
+}): Promise<SurveyMatchesResult> {
+  try {
+    const matchList = data.matchNames
+      .map(
+        (name, i) =>
+          `<li><a href="${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/pets">${name}</a></li>`
+      )
+      .join("");
+
+    if (process.env.SMTP_HOST) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || "1025"),
+          secure: false,
+          auth:
+            process.env.SMTP_USER && process.env.SMTP_PASS
+              ? {
+                  user: process.env.SMTP_USER,
+                  pass: process.env.SMTP_PASS,
+                }
+              : undefined,
+        });
+
+        await transporter.sendMail({
+          from: process.env.EMAIL_FROM ?? "noreply@hcars.org",
+          to: data.email,
+          subject: "Your Booking Matches from Hart County Animal Rescue",
+          html: `
+            <h2>Hi ${data.name}!</h2>
+            <p>Thanks for your booking request! Based on your preferences, here are some pets we think you'll love:</p>
+            <ol>${matchList}</ol>
+            <p>We'll be in touch soon to confirm your visit. Hart County Animal Rescue</p>
+          `,
+        });
+      } catch (emailError) {
+        console.error("Failed to send matches email:", emailError);
+      }
+    } else {
+      console.log(
+        `Email stub: booking matches for ${data.email} — ${data.matchNames.join(", ")}`
+      );
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send matches:", error);
+    return { success: false, error: "Failed to send email. Please try again." };
+  }
+}
+
+export async function submitBookingWithMatches(
+  petId: string,
+  answers: SurveyAnswers,
+  bookingData: { name: string; email: string; phone?: string; preferredDates?: string; message?: string }
+): Promise<BookingResult> {
+  const matches = await getTopMatches(answers);
+
+  await sendMatchesToClient({
+    name: bookingData.name,
+    email: bookingData.email,
+    matchIds: matches.map((p) => p.id),
+    matchNames: matches.map((p) => p.name),
+  });
+
+  return await createBooking({ ...bookingData, petId });
+}
+
 export type BookingData = {
   petId: string;
   name: string;
