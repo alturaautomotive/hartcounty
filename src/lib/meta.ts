@@ -138,3 +138,137 @@ export function metaRow(pet: Pet): MetaRow | null {
     status: pet.status,
   };
 }
+
+/* ------------------------------------------------------------------ */
+/*  Meta Catalog Batch API                                            */
+/* ------------------------------------------------------------------ */
+
+type MetaChange = {
+  id: string;
+  data?: Record<string, string>;
+  method: "CREATE" | "UPDATE" | "DELETE";
+};
+
+type BatchResult = { success: boolean; errors?: unknown[] };
+
+const GRAPH_API_VERSION = "v20.0";
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+export async function updateMetaBatch(
+  catalogId: string,
+  accessToken: string,
+  changes: MetaChange[],
+): Promise<BatchResult> {
+  const META_ROW_KEYS: ReadonlySet<string> = new Set<keyof MetaRow>([
+    "id", "title", "description", "availability", "condition", "price",
+    "link", "image_link", "brand", "product_type", "google_product_category",
+    "age_group", "gender", "color", "custom_label_0", "custom_label_1",
+    "custom_label_2", "custom_label_3", "status",
+  ]);
+
+  const validationErrors: unknown[] = [];
+
+  const valid = changes.filter((c) => {
+    if (!c.id) {
+      validationErrors.push("Skipped batch item: missing id");
+      console.warn("Skipped batch item: missing id");
+      return false;
+    }
+    if (c.data) {
+      const invalidKeys = Object.keys(c.data).filter((k) => !META_ROW_KEYS.has(k));
+      if (invalidKeys.length > 0) {
+        const msg = `Skipped batch item ${c.id}: invalid data keys: ${invalidKeys.join(", ")}`;
+        validationErrors.push(msg);
+        console.warn(msg);
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (valid.length === 0) {
+    return validationErrors.length > 0
+      ? { success: false, errors: validationErrors }
+      : { success: true };
+  }
+
+  const payload = {
+    item_type: "PRODUCT_ITEM",
+    requests: valid.map((c) => ({
+      method: c.method,
+      data: c.data ?? { id: c.id },
+    })),
+  };
+
+  const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${encodeURIComponent(catalogId)}/items_batch?access_token=${encodeURIComponent(accessToken)}`;
+
+  let response: Response | undefined;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status < 500) break;
+      if (attempt === 0) await delay(1000);
+    } catch (err) {
+      console.error("Meta batch fetch error:", err);
+      if (attempt === 0) await delay(1000);
+    }
+  }
+
+  if (!response) {
+    return { success: false, errors: ["Network error after retry"] };
+  }
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    console.error(`Meta batch API error ${response.status}: ${text}`);
+    return { success: false, errors: [{ status: response.status, body: text }] };
+  }
+
+  const json = await response.json();
+  const handles: { status?: string; errors?: unknown[] }[] =
+    json.handles ?? [];
+
+  const errors: unknown[] = [];
+  for (const h of handles) {
+    if (h.errors?.length) errors.push(...h.errors);
+  }
+
+  const success =
+    handles.length > 0 &&
+    handles.every((h) => h.status === "Completed" && !h.errors?.length);
+
+  if (!success) {
+    console.error("Meta batch incomplete:", JSON.stringify(errors));
+  }
+
+  return { success, errors: errors.length > 0 ? errors : undefined };
+}
+
+export async function updateMetaItem(
+  catalogId: string,
+  accessToken: string,
+  data: Record<string, string>,
+): Promise<BatchResult> {
+  return updateMetaBatch(catalogId, accessToken, [
+    { id: data.id, method: "UPDATE", data },
+  ]);
+}
+
+export async function deleteMetaItem(
+  catalogId: string,
+  accessToken: string,
+  id: string,
+): Promise<BatchResult> {
+  return updateMetaBatch(catalogId, accessToken, [
+    { id, method: "DELETE", data: { id } },
+  ]);
+}
