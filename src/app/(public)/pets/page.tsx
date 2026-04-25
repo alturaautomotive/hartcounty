@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getPets } from "@/lib/queries";
+import { getPetBySlug, getPets } from "@/lib/queries";
 import PetCard from "@/components/PetCard";
 import PetFilters from "@/components/PetFilters";
 import MembershipBanner from "@/components/MembershipBanner";
@@ -16,12 +16,21 @@ export default async function PetsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
+  const similarToSlug =
+    typeof params.similarTo === "string" ? params.similarTo : undefined;
+  const similarPet = similarToSlug
+    ? await getPetBySlug(similarToSlug)
+    : undefined;
 
   const filters = {
-    species: typeof params.species === "string" ? params.species : undefined,
+    species:
+      typeof params.species === "string"
+        ? params.species
+        : similarPet?.species,
     size: typeof params.size === "string" ? params.size : undefined,
     ageCategory:
       typeof params.ageCategory === "string" ? params.ageCategory : undefined,
+    excludeSlug: similarPet?.slug,
     goodWithKids: params.goodWithKids === "true",
     goodWithDogs: params.goodWithDogs === "true",
     goodWithCats: params.goodWithCats === "true",
@@ -34,15 +43,15 @@ export default async function PetsPage({
     <main className="flex-1 px-4 py-12 sm:px-6">
       <div className="mx-auto max-w-7xl">
         <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-amber-700">
-          Private adoption gallery
+          {similarPet ? "More possible matches" : "Private adoption gallery"}
         </p>
         <h1 className="mb-3 text-5xl font-black tracking-tight text-slate-950">
-          Adoptable Pets
+          {similarPet ? `Other pets like ${similarPet.name}` : "Adoptable Pets"}
         </h1>
         <p className="mb-8 max-w-2xl text-lg leading-8 text-slate-600">
-          {pets.length} {pets.length === 1 ? "pet" : "pets"} available for
-          adoption, each receiving attentive care while they wait for the right
-          home.
+          {similarPet
+            ? `${pets.length} ${pets.length === 1 ? "pet" : "pets"} available with a similar profile. You can adjust the filters below to broaden your search.`
+            : `${pets.length} ${pets.length === 1 ? "pet" : "pets"} available for adoption, each receiving attentive care while they wait for the right home.`}
         </p>
 
         <Suspense>

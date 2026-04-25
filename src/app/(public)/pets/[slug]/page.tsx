@@ -21,11 +21,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const pet = await getPetBySlug(slug);
-  const fee = pet.adoptionFee ?? pet.price;
 
   return {
     title: `${pet.name} | Hart County Animal Rescue`,
-    description: `Meet ${pet.name}${pet.breed ? `, a ${pet.breed}` : ""} available for adoption${fee != null ? ` - $${fee.toFixed(0)} adoption fee` : ""}. Schedule a meet-and-greet today!`,
+    description: `Meet ${pet.name}${pet.breed ? `, a ${pet.breed}` : ""} available for adoption. Schedule a meet-and-greet today!`,
   };
 }
 
@@ -36,7 +35,6 @@ export default async function PetDetailPage({
 }) {
   const { slug } = await params;
   const pet = await getPetBySlug(slug);
-  const fee = pet.adoptionFee ?? pet.price;
 
   return (
     <main className="flex-1 px-4 py-10 sm:px-6">
@@ -108,11 +106,6 @@ export default async function PetDetailPage({
               <h1 className="text-5xl font-black tracking-tight text-slate-950">
                 {pet.name}
               </h1>
-              {fee != null && (
-                <span className="shrink-0 rounded-full bg-amber-100 px-4 py-2 text-xl font-black text-amber-800">
-                  ${fee.toFixed(0)}
-                </span>
-              )}
             </div>
 
             {/* Meta grid */}

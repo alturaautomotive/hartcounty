@@ -5,6 +5,7 @@ export type PetFilters = {
   species?: string;
   size?: string;
   ageCategory?: string;
+  excludeSlug?: string;
   goodWithKids?: boolean;
   goodWithDogs?: boolean;
   goodWithCats?: boolean;
@@ -35,6 +36,7 @@ export async function getPets(filters: PetFilters = {}) {
   if (filters.species) where.species = filters.species;
   if (filters.size) where.size = filters.size;
   if (filters.ageCategory) where.ageCategory = filters.ageCategory;
+  if (filters.excludeSlug) where.slug = { not: filters.excludeSlug };
   if (filters.goodWithKids) where.goodWithKids = true;
   if (filters.goodWithDogs) where.goodWithDogs = true;
   if (filters.goodWithCats) where.goodWithCats = true;

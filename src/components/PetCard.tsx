@@ -12,8 +12,6 @@ const badges = [
 ] as const;
 
 export default function PetCard({ pet }: { pet: Pet }) {
-  const fee = pet.adoptionFee ?? pet.price;
-
   return (
     <div className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-950/10 ring-1 ring-white/70 transition hover:-translate-y-1 hover:border-amber-300 hover:shadow-2xl">
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-200">
@@ -52,13 +50,8 @@ export default function PetCard({ pet }: { pet: Pet }) {
       </div>
 
       <div className="p-5">
-        <div className="mb-1 flex items-start justify-between gap-2">
+        <div className="mb-1">
           <h3 className="text-xl font-black text-slate-950">{pet.name}</h3>
-          {fee != null && (
-            <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-sm font-black text-amber-800">
-              ${fee.toFixed(0)}
-            </span>
-          )}
         </div>
 
         <p className="mb-4 text-sm font-semibold text-slate-500">

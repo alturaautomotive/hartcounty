@@ -4,11 +4,11 @@ const DOMAIN = "hcars.org";
 const BRAND = "Hart County Animal Rescue";
 
 export function metaAvailability(pet: Pet): string {
-  return pet.status === "available" ? "in stock" : "out of stock";
+  return pet.status.toLowerCase() === "available" ? "in stock" : "out of stock";
 }
 
 export function metaCondition(_pet: Pet): string {
-  return "new";
+  return "used";
 }
 
 export function metaPrice(pet: Pet): string {
@@ -39,8 +39,7 @@ export function metaDescription(pet: Pet): string {
 }
 
 export function metaLink(pet: Pet): string {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? `https://${DOMAIN}`;
-  return `${base}/pets/${pet.slug}`;
+  return `https://${DOMAIN}/pets/${pet.slug}`;
 }
 
 export function metaImageLink(pet: Pet): string | null {
@@ -92,21 +91,21 @@ export function metaRow(pet: Pet): MetaRow | null {
   const link = metaLink(pet);
   const imageLink = metaImageLink(pet);
 
-  // Validate link domain
+  // Validate link protocol
   try {
     const linkUrl = new URL(link);
-    if (!linkUrl.hostname.endsWith(DOMAIN)) {
-      console.warn(`Skipped pet ${pet.id}: link domain invalid (${linkUrl.hostname})`);
+    if (linkUrl.protocol !== "https:") {
+      console.warn(`Skipped pet ${pet.id} (${pet.name || pet.slug}): non-HTTPS link`);
       return null;
     }
   } catch {
-    console.warn(`Skipped pet ${pet.id}: invalid link URL`);
+    console.warn(`Skipped pet ${pet.id} (${pet.name || pet.slug}): invalid link URL`);
     return null;
   }
 
   // Validate required fields
   if (!pet.id || !title) {
-    console.warn(`Skipped pet ${pet.id}: missing required id or title`);
+    console.warn(`Skipped pet ${pet.id} (${pet.name || pet.slug}): missing required id or title`);
     return null;
   }
 
