@@ -49,6 +49,7 @@ export default function EditablePetsTable({ pets }: { pets: Pet[] }) {
       <table className="w-full text-sm">
         <thead className="border-b border-neutral-200 bg-neutral-50">
           <tr>
+            <th className="px-3 py-3 text-left font-medium text-neutral-600">Image</th>
             <th className="px-3 py-3 text-left font-medium text-neutral-600">Name</th>
             <th className="px-3 py-3 text-left font-medium text-neutral-600">Species</th>
             <th className="px-3 py-3 text-left font-medium text-neutral-600">Breed</th>
@@ -66,7 +67,7 @@ export default function EditablePetsTable({ pets }: { pets: Pet[] }) {
             if (isEditing) {
               return (
                 <tr key={pet.id} className="bg-amber-50">
-                  <td colSpan={8} className="p-3">
+                  <td colSpan={9} className="p-3">
                     <form action={handleSave}>
                       <input type="hidden" name="id" value={pet.id} />
                       <div className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-white p-3 sm:flex-row sm:items-center">
@@ -165,6 +166,9 @@ export default function EditablePetsTable({ pets }: { pets: Pet[] }) {
 
             return (
               <tr key={pet.id}>
+                <td className="px-3 py-3">
+                  <PetThumbnail imageUrl={pet.imageUrl} name={pet.name} />
+                </td>
                 <td className="px-3 py-3 font-medium">{pet.name}</td>
                 <td className="px-3 py-3 text-neutral-500">{pet.species}</td>
                 <td className="px-3 py-3 text-neutral-500">{pet.breed ?? "-"}</td>
@@ -210,13 +214,39 @@ export default function EditablePetsTable({ pets }: { pets: Pet[] }) {
           })}
           {pets.length === 0 && (
             <tr>
-              <td colSpan={8} className="px-4 py-6 text-center text-neutral-400">
+              <td colSpan={9} className="px-4 py-6 text-center text-neutral-400">
                 No pets found. Import some via CSV.
               </td>
             </tr>
           )}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function PetThumbnail({
+  imageUrl,
+  name,
+}: {
+  imageUrl: string | null;
+  name: string;
+}) {
+  return (
+    <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm">
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt={name}
+          fill
+          sizes="56px"
+          className="object-cover"
+        />
+      ) : (
+        <div className="flex h-full items-center justify-center text-[10px] font-bold uppercase tracking-wide text-slate-500">
+          No Img
+        </div>
+      )}
     </div>
   );
 }

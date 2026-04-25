@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import type { Pet } from "@/generated/prisma/client";
 import PetCard from "@/components/PetCard";
 import { steps, stepSchemas } from "@/types/survey";
@@ -29,6 +31,8 @@ export default function BookingForm({
   petFee,
   petVaccinated,
   petSpayedNeutered,
+  petImageUrl,
+  petBreed,
 }: {
   petId: string;
   petName: string;
@@ -36,8 +40,18 @@ export default function BookingForm({
   petFee?: number | null;
   petVaccinated?: boolean;
   petSpayedNeutered?: boolean;
+  petImageUrl?: string | null;
+  petBreed?: string | null;
 }) {
-  const [step, setStep] = useState(0);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const initialStep = Math.min(
+    Math.max(0, parseInt(searchParams.get("step") ?? "0", 10)),
+    TOTAL_STEPS
+  );
+
+  const [step, setStep] = useState(initialStep);
   const [answers, setAnswers] = useState<Partial<SurveyAnswers>>({});
   const [matches, setMatches] = useState<Pet[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
@@ -47,28 +61,35 @@ export default function BookingForm({
 
   const showResults = step === TOTAL_STEPS;
 
+  function goToStep(next: number) {
+    setStep(next);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("step", String(next));
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
+
   async function handleStepSubmit(data: Record<string, unknown>) {
     const updated = { ...answers, ...data } as Partial<SurveyAnswers>;
     setAnswers(updated);
 
     if (step < TOTAL_STEPS - 1) {
-      setStep(step + 1);
+      goToStep(step + 1);
     } else {
       setLoadingMatches(true);
       const matched = await getTopMatches(updated as SurveyAnswers);
       startTransition(() => {
         setMatches(matched);
         setLoadingMatches(false);
-        setStep(TOTAL_STEPS);
+        goToStep(TOTAL_STEPS);
       });
     }
   }
 
   function handleBack() {
     if (showResults) {
-      setStep(TOTAL_STEPS - 1);
+      goToStep(TOTAL_STEPS - 1);
     } else if (step > 0) {
-      setStep(step - 1);
+      goToStep(step - 1);
     }
   }
 
@@ -110,11 +131,12 @@ export default function BookingForm({
           </svg>
         </div>
         <h2 className="mb-2 text-xl font-black text-slate-950">
-          Thank you!
+          Booking Submitted & Matches Emailed!
         </h2>
         <p className="mb-6 text-slate-600">
           Your meet-and-greet request for{" "}
-          <span className="font-semibold">{petName}</span> has been submitted.
+          <span className="font-semibold">{petName}</span> has been submitted
+          and your top matches have been sent to your email.
           We&apos;ll be in touch soon to confirm your visit.
         </p>
 
@@ -144,6 +166,11 @@ export default function BookingForm({
       <ResultsWithBooking
         petId={petId}
         petName={petName}
+        petFee={petFee}
+        petVaccinated={petVaccinated}
+        petSpayedNeutered={petSpayedNeutered}
+        petImageUrl={petImageUrl}
+        petBreed={petBreed}
         matches={matches}
         answers={answers as SurveyAnswers}
         onBack={handleBack}
@@ -329,6 +356,11 @@ function StepForm({
 function ResultsWithBooking({
   petId,
   petName,
+  petFee,
+  petVaccinated,
+  petSpayedNeutered,
+  petImageUrl,
+  petBreed,
   matches,
   answers,
   onBack,
@@ -337,6 +369,11 @@ function ResultsWithBooking({
 }: {
   petId: string;
   petName: string;
+  petFee?: number | null;
+  petVaccinated?: boolean;
+  petSpayedNeutered?: boolean;
+  petImageUrl?: string | null;
+  petBreed?: string | null;
   matches: Pet[];
   answers: SurveyAnswers;
   onBack: () => void;
@@ -360,9 +397,66 @@ function ResultsWithBooking({
 
   return (
     <div>
+      {/* Pet hero */}
+      <div className="mb-8 flex items-center gap-4 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-xl shadow-slate-950/10 ring-1 ring-white/70">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-900">
+          {petImageUrl ? (
+            <Image
+              src={petImageUrl}
+              alt={petName}
+              fill
+              sizes="80px"
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-amber-200">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 21C12 21 4 16.5 4 10a4 4 0 018 0 4 4 0 018 0c0 6.5-8 11-8 11z"
+                />
+              </svg>
+            </div>
+          )}
+        </div>
+        <div>
+          <h1 className="text-2xl font-black text-slate-950">Book a Meet-and-Greet</h1>
+          <p className="text-sm font-semibold text-slate-500">
+            with <span className="font-black text-slate-800">{petName}</span>
+            {petBreed ? ` - ${petBreed}` : ""}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            {petFee != null && (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-black text-amber-800">
+                ${petFee.toFixed(0)}
+              </span>
+            )}
+            {petVaccinated && (
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 ring-1 ring-emerald-200">
+                Vaccinated
+              </span>
+            )}
+            {petSpayedNeutered && (
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 ring-1 ring-emerald-200">
+                Spayed/Neutered
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-black text-slate-950">
-          Top matches including {petName}
+          Top Matches Including {petName}
         </h2>
         <p className="mt-3 text-slate-600">
           {matches.length > 0

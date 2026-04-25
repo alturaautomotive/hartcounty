@@ -19,17 +19,12 @@ export type SurveyMatchesData = {
   email: string;
   matchIds: string[];
   matchNames: string[];
+  matchSlugs: string[];
 };
 
 export type SurveyMatchesResult =
   | { success: true }
   | { success: false; error: string };
-
-export type TopMatchesData = {
-  name: string;
-  matchIds: string[];
-  matchNames: string[];
-};
 
 export async function getTopMatches(answers: SurveyAnswers) {
   const pets = await prisma.pet.findMany({
@@ -88,7 +83,7 @@ export async function sendSurveyMatches(
 ): Promise<SurveyMatchesResult> {
   try {
     const matchList = data.matchNames
-      .map((name, i) => `<li><a href="${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/pets">${name}</a></li>`)
+      .map((name, i) => `<li><a href="${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/pets/${data.matchSlugs[i]}">${name}</a></li>`)
       .join("");
 
     const adminEmails = await getAllAdminEmails();
@@ -142,12 +137,13 @@ export async function sendMatchesToClient(data: {
   email: string;
   matchIds: string[];
   matchNames: string[];
+  matchSlugs: string[];
 }): Promise<SurveyMatchesResult> {
   try {
     const matchList = data.matchNames
       .map(
         (name, i) =>
-          `<li><a href="${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/pets">${name}</a></li>`
+          `<li><a href="${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/pets/${data.matchSlugs[i]}">${name}</a></li>`
       )
       .join("");
 
@@ -205,6 +201,7 @@ export async function submitBookingWithMatches(
     email: bookingData.email,
     matchIds: matches.map((p) => p.id),
     matchNames: matches.map((p) => p.name),
+    matchSlugs: matches.map((p) => p.slug),
   });
 
   return await createBooking({ ...bookingData, petId });

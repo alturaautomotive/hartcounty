@@ -1,7 +1,21 @@
+import { cookies } from "next/headers";
+import { verifyToken } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 import { getDashboardData } from "@/lib/queries";
 import { updateBookingStatus } from "@/lib/actions";
 
 export default async function AdminDashboard() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("admin-token")?.value;
+  const session = token ? verifyToken(token) : null;
+  const user = session
+    ? await prisma.adminUser.findUnique({
+        where: { id: session.userId },
+        select: { role: true },
+      })
+    : null;
+  const isSuperAdmin = user?.role === "super_admin";
+
   const data = await getDashboardData();
 
   return (
@@ -9,13 +23,17 @@ export default async function AdminDashboard() {
       <h1 className="mb-6 text-2xl font-bold text-neutral-900">Dashboard</h1>
 
       {/* Stats cards */}
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-[repeat(auto-fit,minmax(250px,1fr))]">
         <StatCard label="Total Pets" value={data.petCount} />
         <StatCard label="Available" value={data.availableCount} />
         <StatCard label="Adopted" value={data.adoptedCount} />
         <StatCard label="Bookings" value={data.bookingCount} />
-        <StatCard label="Donations" value={data.donationCount} />
-        <StatCard label="Total Donated" value={`$${data.totalDonated.toFixed(2)}`} />
+        {isSuperAdmin && (
+          <>
+            <StatCard label="Donations" value={data.donationCount} />
+            <StatCard label="Total Donated" value={`$${data.totalDonated.toFixed(2)}`} />
+          </>
+        )}
       </div>
 
       {/* Recent Bookings */}
@@ -80,42 +98,44 @@ export default async function AdminDashboard() {
       </section>
 
       {/* Recent Donations */}
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-neutral-800">Recent Donations</h2>
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b border-neutral-200 bg-neutral-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-neutral-600">Donor</th>
-                <th className="px-4 py-3 text-left font-medium text-neutral-600">Amount</th>
-                <th className="px-4 py-3 text-left font-medium text-neutral-600">Pet</th>
-                <th className="px-4 py-3 text-left font-medium text-neutral-600">Type</th>
-                <th className="px-4 py-3 text-left font-medium text-neutral-600">Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {data.recentDonations.map((d) => (
-                <tr key={d.id}>
-                  <td className="px-4 py-3">{d.name ?? "Anonymous"}</td>
-                  <td className="px-4 py-3 font-medium">${d.amount.toFixed(2)}</td>
-                  <td className="px-4 py-3">{d.pet?.name ?? "General"}</td>
-                  <td className="px-4 py-3 text-neutral-500">{d.interval}</td>
-                  <td className="px-4 py-3 text-neutral-500">
-                    {new Date(d.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-              {data.recentDonations.length === 0 && (
+      {isSuperAdmin && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-neutral-800">Recent Donations</h2>
+          <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="border-b border-neutral-200 bg-neutral-50">
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-neutral-400">
-                    No donations yet.
-                  </td>
+                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Donor</th>
+                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Amount</th>
+                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Pet</th>
+                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Type</th>
+                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Date</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {data.recentDonations.map((d) => (
+                  <tr key={d.id}>
+                    <td className="px-4 py-3">{d.name ?? "Anonymous"}</td>
+                    <td className="px-4 py-3 font-medium">${d.amount.toFixed(2)}</td>
+                    <td className="px-4 py-3">{d.pet?.name ?? "General"}</td>
+                    <td className="px-4 py-3 text-neutral-500">{d.interval}</td>
+                    <td className="px-4 py-3 text-neutral-500">
+                      {new Date(d.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+                {data.recentDonations.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-neutral-400">
+                      No donations yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -113,7 +113,7 @@ export default async function BookingPage({
           </div>
         </div>
 
-        <BookingForm petId={pet.id} petName={pet.name} petSlug={pet.slug} petFee={fee} petVaccinated={pet.vaccinated} petSpayedNeutered={pet.spayedNeutered} />
+        <BookingForm petId={pet.id} petName={pet.name} petSlug={pet.slug} petFee={fee} petVaccinated={pet.vaccinated} petSpayedNeutered={pet.spayedNeutered} petImageUrl={pet.imageUrl} petBreed={pet.breed} />
       </div>
     </main>
   );

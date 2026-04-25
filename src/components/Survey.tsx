@@ -103,6 +103,7 @@ export default function Survey() {
             email: data.email,
             matchIds: matches.map((p) => p.id),
             matchNames: matches.map((p) => p.name),
+            matchSlugs: matches.map((p) => p.slug),
           });
           setEmailSent(true);
           setEmailSending(false);
