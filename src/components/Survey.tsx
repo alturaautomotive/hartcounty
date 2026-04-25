@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
@@ -9,57 +9,9 @@ import type { Pet } from "@prisma/client";
 import PetCard from "@/components/PetCard";
 import { steps, stepSchemas } from "@/types/survey";
 import type { SurveyAnswers } from "@/types/survey";
-import { sendSurveyMatches } from "@/lib/actions";
+import { sendSurveyMatches, getTopMatches } from "@/lib/actions";
 
 const TOTAL_STEPS = steps.length;
-
-function computeMatches(pets: Pet[], answers: SurveyAnswers): Pet[] {
-  const scored = pets.map((pet) => {
-    let score = 0;
-
-    // Compatibility flags
-    if (answers.hasKids && pet.goodWithKids) score += 10;
-    if (answers.hasKids && !pet.goodWithKids) score -= 10;
-    if (answers.hasDogs && pet.goodWithDogs) score += 10;
-    if (answers.hasDogs && !pet.goodWithDogs) score -= 10;
-    if (answers.hasCats && pet.goodWithCats) score += 10;
-    if (answers.hasCats && !pet.goodWithCats) score -= 10;
-
-    // Size match
-    if (answers.prefSize !== "any" && pet.size) {
-      if (pet.size.toLowerCase() === answers.prefSize) score += 5;
-      else score -= 2;
-    }
-
-    // Energy / activity level match
-    if (pet.energyLevel) {
-      if (pet.energyLevel.toLowerCase() === answers.activityLevel) score += 8;
-      else score -= 2;
-    }
-
-    // Age match
-    if (answers.prefAge !== "any" && pet.ageCategory) {
-      if (pet.ageCategory.toLowerCase() === answers.prefAge) score += 5;
-      else score -= 1;
-    }
-
-    // Home type bonus for large pets in large spaces
-    if (
-      (answers.homeType === "house_large_yard" || answers.homeType === "farm") &&
-      pet.size?.toLowerCase() === "large"
-    ) {
-      score += 3;
-    }
-    if (answers.homeType === "apartment" && pet.size?.toLowerCase() === "large") {
-      score -= 5;
-    }
-
-    return { pet, score };
-  });
-
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, 5).map((s) => s.pet);
-}
 
 const emailSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
@@ -68,9 +20,10 @@ const emailSchema = z.object({
 
 type EmailFormValues = z.infer<typeof emailSchema>;
 
-export default function Survey({ initialPets }: { initialPets: Pet[] }) {
+export default function Survey() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   const initialStep = Math.min(
     Math.max(0, parseInt(searchParams.get("step") ?? "0", 10)),
@@ -82,6 +35,7 @@ export default function Survey({ initialPets }: { initialPets: Pet[] }) {
   const [matches, setMatches] = useState<Pet[]>([]);
   const [emailSent, setEmailSent] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
+  const [loadingMatches, setLoadingMatches] = useState(false);
   const showResults = step === TOTAL_STEPS;
 
   function goToStep(next: number) {
@@ -91,22 +45,43 @@ export default function Survey({ initialPets }: { initialPets: Pet[] }) {
     router.replace(`?${params.toString()}`, { scroll: false });
   }
 
-  function handleStepSubmit(data: Record<string, unknown>) {
+  async function handleStepSubmit(data: Record<string, unknown>) {
     const updated = { ...answers, ...data } as Partial<SurveyAnswers>;
     setAnswers(updated);
 
     if (step < TOTAL_STEPS - 1) {
       goToStep(step + 1);
     } else {
-      // Final step - compute matches
-      const matched = computeMatches(initialPets, updated as SurveyAnswers);
-      setMatches(matched);
-      goToStep(TOTAL_STEPS);
+      // Final step - fetch matches from server
+      setLoadingMatches(true);
+      const matched = await getTopMatches(updated as SurveyAnswers);
+      startTransition(() => {
+        setMatches(matched);
+        setLoadingMatches(false);
+        goToStep(TOTAL_STEPS);
+      });
     }
   }
 
   function handleBack() {
     if (step > 0) goToStep(step - 1);
+  }
+
+  if (loadingMatches || isPending) {
+    return (
+      <div className="mx-auto flex max-w-2xl flex-col items-center justify-center px-4 py-20">
+        <svg
+          className="h-10 w-10 animate-spin text-amber-500"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+        </svg>
+        <p className="mt-4 text-lg font-bold text-slate-700">Finding your perfect matches...</p>
+      </div>
+    );
   }
 
   if (showResults) {

@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { getAdoptablePets } from "@/lib/queries";
 import Survey from "@/components/Survey";
 
 export const metadata = {
@@ -8,9 +7,7 @@ export const metadata = {
     "Answer a few questions and we'll match you with adoptable pets that fit your lifestyle.",
 };
 
-export default async function MatchPage() {
-  const pets = await getAdoptablePets();
-
+export default function MatchPage() {
   return (
     <main className="min-h-screen">
       <section className="bg-slate-950 px-4 py-14 text-center text-white">
@@ -27,7 +24,7 @@ export default async function MatchPage() {
       </section>
 
       <Suspense>
-        <Survey initialPets={pets} />
+        <Survey />
       </Suspense>
     </main>
   );

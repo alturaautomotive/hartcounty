@@ -10,6 +10,7 @@ import { createToken, verifyToken } from "./auth";
 import { getAllAdminEmails } from "@/lib/queries";
 import { z } from "zod";
 import crypto from "crypto";
+import type { SurveyAnswers } from "@/types/survey";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 
@@ -23,6 +24,64 @@ export type SurveyMatchesData = {
 export type SurveyMatchesResult =
   | { success: true }
   | { success: false; error: string };
+
+export type TopMatchesData = {
+  name: string;
+  matchIds: string[];
+  matchNames: string[];
+};
+
+export async function getTopMatches(answers: SurveyAnswers) {
+  const pets = await prisma.pet.findMany({
+    where: { status: "available" },
+  });
+
+  const scored = pets.map((pet) => {
+    let score = 0;
+
+    // Compatibility flags
+    if (answers.hasKids && (pet.goodWithKids ?? false)) score += 10;
+    if (answers.hasKids && !(pet.goodWithKids ?? false)) score -= 10;
+    if (answers.hasDogs && (pet.goodWithDogs ?? false)) score += 10;
+    if (answers.hasDogs && !(pet.goodWithDogs ?? false)) score -= 10;
+    if (answers.hasCats && (pet.goodWithCats ?? false)) score += 10;
+    if (answers.hasCats && !(pet.goodWithCats ?? false)) score -= 10;
+
+    // Size match
+    if (answers.prefSize !== "any" && pet.size) {
+      if (pet.size.toLowerCase() === answers.prefSize) score += 5;
+      else score -= 2;
+    }
+
+    // Energy / activity level match
+    if (pet.energyLevel) {
+      if (pet.energyLevel.toLowerCase() === answers.activityLevel) score += 8;
+      else score -= 2;
+    }
+
+    // Age match
+    if (answers.prefAge !== "any" && pet.ageCategory) {
+      if (pet.ageCategory.toLowerCase() === answers.prefAge) score += 5;
+      else score -= 1;
+    }
+
+    // Home type bonus for large pets in large spaces
+    if (
+      (answers.homeType === "house_large_yard" || answers.homeType === "farm") &&
+      pet.size?.toLowerCase() === "large"
+    ) {
+      score += 3;
+    }
+    if (answers.homeType === "apartment" && pet.size?.toLowerCase() === "large") {
+      score -= 5;
+    }
+
+    return { pet, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 5).map((s) => s.pet);
+}
 
 export async function sendSurveyMatches(
   data: SurveyMatchesData
