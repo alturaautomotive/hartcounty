@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getPets } from "@/lib/queries";
 import PetCard from "@/components/PetCard";
 import PetFilters from "@/components/PetFilters";
+import MembershipBanner from "@/components/MembershipBanner";
 
 export const metadata = {
   title: "Adoptable Pets | Hart County Animal Rescue",
@@ -47,6 +48,10 @@ export default async function PetsPage({
         <Suspense>
           <PetFilters />
         </Suspense>
+
+        <div className="mt-8">
+          <MembershipBanner />
+        </div>
 
         {pets.length > 0 ? (
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

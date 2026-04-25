@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getFeaturedPets } from "@/lib/queries";
 import PetCard from "@/components/PetCard";
+import MembershipBanner from "@/components/MembershipBanner";
 
 const impactTiers = [
   { amount: "$25", label: "Vaccines & preventive care for one pet" },
@@ -44,6 +45,13 @@ export default async function HomePage() {
               Donate Now
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Membership Banner */}
+      <section className="px-4 pt-16 sm:px-6 sm:pt-24">
+        <div className="mx-auto max-w-4xl">
+          <MembershipBanner />
         </div>
       </section>
 

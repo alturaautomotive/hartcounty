@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getActiveTeamMembers } from "@/lib/queries";
+import MembershipBanner from "@/components/MembershipBanner";
 
 const workBlocks = [
   {
@@ -135,6 +136,12 @@ export default async function AboutPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-16 bg-amber-50">
+        <div className="mx-auto max-w-4xl">
+          <MembershipBanner />
         </div>
       </section>
 
