@@ -32,6 +32,8 @@ export default async function AdminDashboard() {
           <>
             <StatCard label="Donations" value={data.donationCount} />
             <StatCard label="Total Donated" value={`$${data.totalDonated.toFixed(2)}`} />
+            <StatCard label="Monthly Donations" value={data.monthlyDonationCount} />
+            <StatCard label="Monthly Total" value={`$${data.monthlyTotalDonated.toFixed(2)}`} />
           </>
         )}
       </div>
@@ -99,6 +101,7 @@ export default async function AdminDashboard() {
 
       {/* Recent Donations */}
       {isSuperAdmin && (
+        <>
         <section>
           <h2 className="mb-3 text-lg font-semibold text-neutral-800">Recent Donations</h2>
           <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
@@ -135,6 +138,44 @@ export default async function AdminDashboard() {
             </table>
           </div>
         </section>
+
+        <section className="mt-8">
+          <h2 className="mb-3 text-lg font-semibold text-neutral-800">Recent Monthly Donations</h2>
+          <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="border-b border-neutral-200 bg-neutral-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Donor</th>
+                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Amount</th>
+                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Pet</th>
+                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Type</th>
+                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {data.recentMonthlyDonations.map((d) => (
+                  <tr key={d.id}>
+                    <td className="px-4 py-3">{d.name ?? "Anonymous"}</td>
+                    <td className="px-4 py-3 font-medium">${d.amount.toFixed(2)}</td>
+                    <td className="px-4 py-3">{d.pet?.name ?? "General"}</td>
+                    <td className="px-4 py-3 text-neutral-500">Monthly</td>
+                    <td className="px-4 py-3 text-neutral-500">
+                      {new Date(d.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+                {data.recentMonthlyDonations.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-neutral-400">
+                      No monthly donations yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        </>
       )}
     </div>
   );
