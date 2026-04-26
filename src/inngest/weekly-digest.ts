@@ -27,8 +27,11 @@ function generateUnsubscribeToken(subscriberId: string): string {
 }
 
 export const weeklyDigestJob = inngest.createFunction(
-  { id: "weekly-digest", name: "Weekly Digest Email" },
-  [{ cron: "0 14 * * 1" }, { event: "app/weekly-digest.send" }],
+  {
+    id: "weekly-digest",
+    name: "Weekly Digest Email",
+    triggers: [{ cron: "0 14 * * 1" }, { event: "app/weekly-digest.send" }],
+  },
   async ({ step }) => {
     const data = await step.run("fetch-data", async () => {
       const [petOfMonth, recentlyAdopted, newArrivals, donationStats] =

@@ -178,4 +178,38 @@ async function handleMessaging(messaging: {
       externalId: mid,
     },
   });
+
+  // Extract phone number from message text
+  const phoneRegex = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+  const extractedPhones = text.match(phoneRegex);
+  if (extractedPhones?.length && !contact.phone) {
+    const cleaned = extractedPhones[0].replace(/\D/g, "");
+    const normalized =
+      cleaned.length === 10 ? "+1" + cleaned : "+" + cleaned;
+    await prisma.contact.update({
+      where: { id: contact.id },
+      data: { phone: normalized },
+    });
+  }
+
+  // Extract email from message text
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const extractedEmails = text.match(emailRegex);
+  if (extractedEmails?.length && !contact.email) {
+    const email = extractedEmails[0].toLowerCase();
+    await prisma.contact.update({
+      where: { id: contact.id },
+      data: { email },
+    });
+    await prisma.subscriber.upsert({
+      where: { email },
+      create: {
+        email,
+        firstName: contact.firstName ?? undefined,
+        source: "messenger_message",
+        consentedAt: new Date(),
+      },
+      update: {},
+    });
+  }
 }
