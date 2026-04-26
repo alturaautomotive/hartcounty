@@ -145,6 +145,23 @@ PAYPAL_SECRET=your_sandbox_secret
 
 Replace sandbox credentials with live credentials from the PayPal dashboard. The SDK URL automatically switches between sandbox and production based on `NODE_ENV`.
 
+## PayPal IPN (Instant Payment Notification)
+
+The app includes an IPN webhook at `/api/webhooks/paypal-ipn` that automatically records donations and subscribes donors to the newsletter.
+
+### Setup
+
+1. Go to your PayPal account: **Settings > Notifications > Instant Payment Notifications > Edit**
+2. Set the Notification URL to: `${NEXT_PUBLIC_BASE_URL}/api/webhooks/paypal-ipn`
+3. Enable IPN messages
+
+### Sandbox Testing
+
+1. Go to [developer.paypal.com](https://developer.paypal.com/developer/ipnSimulator/)
+2. Use the IPN Simulator to send a test `Completed` transaction
+3. Verify the donation appears in the admin panel at `/admin/donations`
+4. Check the `Donation` and `Subscriber` tables in Prisma Studio (`npx prisma studio`)
+
 ## Tailwind Theme
 
 The project uses a rescue-themed color palette defined in `globals.css`:
