@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { Resend } from "resend";
+import { getResend } from "@/lib/resend";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -13,10 +13,6 @@ import crypto from "crypto";
 import type { SurveyAnswers } from "@/types/survey";
 import type { Pet } from "@prisma/client";
 import { uploadImageToSupabase } from "./supabase-storage";
-
-function getResend() {
-  return new Resend(process.env.RESEND_API_KEY);
-}
 
 const emailFrom = () =>
   process.env.RESEND_FROM_EMAIL ?? process.env.EMAIL_FROM ?? "noreply@hcars.org";

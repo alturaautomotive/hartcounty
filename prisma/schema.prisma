@@ -2,8 +2,9 @@ generator client {
   provider = "prisma-client-js"
 }
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Pet {
@@ -33,6 +34,8 @@ model Pet {
   adoptionFee    Float?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  featuredMonth  String?
+  lastFeaturedAt DateTime?
 
   bookings  BookingRequest[]
   donations Donation[]
@@ -103,4 +106,51 @@ model TeamMember {
   updatedAt DateTime @updatedAt
 
   @@index([isActive, sortOrder])
+}
+
+model Subscriber {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  firstName    String?
+  source       String?   // "booking_form" | "donation_form" | "messenger_lead" | "manual"
+  isMonthly    Boolean   @default(false)
+  unsubscribed Boolean   @default(false)
+  consentedAt  DateTime
+  createdAt    DateTime  @default(now())
+}
+
+model Contact {
+  id          String    @id @default(cuid())
+  firstName   String?
+  lastName    String?
+  email       String?
+  phone       String?
+  source      String    // "messenger_lead" | "messenger_message" | "manual"
+  fbLeadId    String?   @unique
+  fbSenderId  String?   @unique
+  fbAdId      String?
+  fbFormId    String?
+  tags        String[]
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  messages    Message[]
+
+  @@index([fbLeadId])
+  @@index([fbSenderId])
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  contactId   String
+  contact     Contact   @relation(fields: [contactId], references: [id])
+  channel     String    // "MESSENGER" — SMS deferred to Phase 2
+  direction   String    // "INBOUND" | "OUTBOUND"
+  body        String
+  externalId  String?
+  sentAt      DateTime  @default(now())
+  readAt      DateTime?
+  staffNote   String?
+
+  @@index([contactId])
 }
