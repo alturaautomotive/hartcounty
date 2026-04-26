@@ -24,11 +24,15 @@ export async function GET(request: NextRequest) {
     where.sentAt = { gt: new Date(since) };
   }
 
+  const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+  if (!contact) {
+    return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+  }
+
   const messages = await prisma.message.findMany({
     where,
-    include: { contact: true },
     orderBy: { sentAt: "asc" },
   });
 
-  return NextResponse.json(messages);
+  return NextResponse.json({ messages, contact });
 }

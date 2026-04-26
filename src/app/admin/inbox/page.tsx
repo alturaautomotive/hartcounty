@@ -67,6 +67,13 @@ export default function InboxPage() {
   const [isSubscriber, setIsSubscriber] = useState(false);
   const [subscriberLoading, setSubscriberLoading] = useState(false);
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const [toasts, setToasts] = useState<{ id: string; message: string }[]>([]);
+
+  const showToast = useCallback((message: string) => {
+    const id = crypto.randomUUID();
+    setToasts((prev) => [{ id, message }, ...prev.slice(0, 1)]);
+    setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 5000);
+  }, []);
 
   // Fetch contacts list
   const fetchContacts = useCallback(async () => {
@@ -87,7 +94,13 @@ export default function InboxPage() {
     setThreadLoading(true);
     const res = await fetch(`/api/inbox/messages?contactId=${contactId}`);
     if (res.ok) {
-      setThread(await res.json());
+      const { messages, contact: updatedContact } = await res.json();
+      setThread(messages);
+      if (updatedContact) {
+        setContacts((prev) =>
+          prev.map((c) => (c.id === contactId ? { ...c, ...updatedContact } : c))
+        );
+      }
     }
     setThreadLoading(false);
   }, []);
@@ -104,6 +117,8 @@ export default function InboxPage() {
   useEffect(() => {
     if (!selectedId) return;
     const id = setInterval(async () => {
+      const prevPhone = selected?.phone ?? null;
+      const prevEmail = selected?.email ?? null;
       const lastMsg = thread[thread.length - 1];
       const since = lastMsg ? lastMsg.sentAt : "";
       const url = since
@@ -111,19 +126,30 @@ export default function InboxPage() {
         : `/api/inbox/messages?contactId=${selectedId}`;
       const res = await fetch(url);
       if (res.ok) {
-        const newMsgs: Message[] = await res.json();
+        const { messages: newMsgs, contact: updatedContact } = await res.json();
         if (since && newMsgs.length > 0) {
           setThread((prev) => {
-            const ids = new Set(prev.map((m) => m.id));
-            return [...prev, ...newMsgs.filter((m) => !ids.has(m.id))];
+            const ids = new Set(prev.map((m: Message) => m.id));
+            return [...prev, ...newMsgs.filter((m: Message) => !ids.has(m.id))];
           });
         } else if (!since) {
           setThread(newMsgs);
         }
+        if (updatedContact) {
+          if (updatedContact.phone && prevPhone === null) {
+            showToast(`Phone number detected and saved: ${updatedContact.phone}`);
+          }
+          if (updatedContact.email && prevEmail === null) {
+            showToast(`Email detected and saved: ${updatedContact.email}`);
+          }
+          setContacts((prev) =>
+            prev.map((c) => (c.id === selectedId ? { ...c, ...updatedContact } : c))
+          );
+        }
       }
     }, 8000);
     return () => clearInterval(id);
-  }, [selectedId, thread]);
+  }, [selectedId, thread, selected, showToast]);
 
   // Auto-scroll thread
   useEffect(() => {
@@ -591,6 +617,18 @@ export default function InboxPage() {
             Select a contact to view details
           </div>
         )}
+      </div>
+      {/* Toast notifications */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-2">
+        {toasts.map(({ id, message }) => (
+          <div
+            key={id}
+            className="max-w-sm rounded-lg bg-black/90 px-4 py-2.5 text-xs text-white shadow-2xl backdrop-blur-sm"
+            style={{ animation: "slideIn 0.3s ease-out forwards" }}
+          >
+            {message}
+          </div>
+        ))}
       </div>
     </div>
   );
