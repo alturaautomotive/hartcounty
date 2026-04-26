@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -13,6 +13,13 @@ import crypto from "crypto";
 import type { SurveyAnswers } from "@/types/survey";
 import type { Pet } from "@prisma/client";
 import { uploadImageToSupabase } from "./supabase-storage";
+
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
+
+const emailFrom = () =>
+  process.env.RESEND_FROM_EMAIL ?? process.env.EMAIL_FROM ?? "noreply@hcars.org";
 import { metaRow, updateMetaItem, deleteMetaItem, updateMetaBatch } from "./meta";
 
 export type SurveyMatchesData = {
@@ -89,23 +96,10 @@ export async function sendSurveyMatches(
 
     const adminEmails = await getAllAdminEmails();
 
-    if (process.env.SMTP_HOST) {
+    if (process.env.RESEND_API_KEY) {
       try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || "1025"),
-          secure: false,
-          auth:
-            process.env.SMTP_USER && process.env.SMTP_PASS
-              ? {
-                  user: process.env.SMTP_USER,
-                  pass: process.env.SMTP_PASS,
-                }
-              : undefined,
-        });
-
-        await transporter.sendMail({
-          from: process.env.EMAIL_FROM ?? "noreply@hcars.org",
+        await getResend().emails.send({
+          from: emailFrom(),
           to: data.email,
           cc: ["shelter@hcars.org", ...adminEmails],
           subject: "Your Pet Matches from Hart County Animal Rescue",
@@ -148,23 +142,10 @@ export async function sendMatchesToClient(data: {
       )
       .join("");
 
-    if (process.env.SMTP_HOST) {
+    if (process.env.RESEND_API_KEY) {
       try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || "1025"),
-          secure: false,
-          auth:
-            process.env.SMTP_USER && process.env.SMTP_PASS
-              ? {
-                  user: process.env.SMTP_USER,
-                  pass: process.env.SMTP_PASS,
-                }
-              : undefined,
-        });
-
-        await transporter.sendMail({
-          from: process.env.EMAIL_FROM ?? "noreply@hcars.org",
+        await getResend().emails.send({
+          from: emailFrom(),
           to: data.email,
           subject: "Your Booking Matches from Hart County Animal Rescue",
           html: `
@@ -239,23 +220,10 @@ export async function createBooking(data: BookingData): Promise<BookingResult> {
     // Send notification email
     const adminEmails = await getAllAdminEmails();
 
-    if (process.env.SMTP_HOST) {
+    if (process.env.RESEND_API_KEY) {
       try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || "1025"),
-          secure: false,
-          auth:
-            process.env.SMTP_USER && process.env.SMTP_PASS
-              ? {
-                  user: process.env.SMTP_USER,
-                  pass: process.env.SMTP_PASS,
-                }
-              : undefined,
-        });
-
-        await transporter.sendMail({
-          from: process.env.EMAIL_FROM ?? "noreply@hcars.org",
+        await getResend().emails.send({
+          from: emailFrom(),
           to: "shelter@hcars.org",
           cc: adminEmails,
           subject: `New Meet-and-Greet Request: ${pet?.name ?? "Unknown Pet"}`,
@@ -402,22 +370,9 @@ function hashResetToken(token: string) {
 }
 
 async function sendPasswordResetEmail(email: string, resetUrl: string) {
-  if (process.env.SMTP_HOST) {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || "1025"),
-      secure: false,
-      auth:
-        process.env.SMTP_USER && process.env.SMTP_PASS
-          ? {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS,
-            }
-          : undefined,
-    });
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM ?? "noreply@hcars.org",
+  if (process.env.RESEND_API_KEY) {
+    await getResend().emails.send({
+      from: emailFrom(),
       to: email,
       subject: "Reset your Hart County admin password",
       html: `
