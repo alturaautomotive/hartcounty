@@ -11,6 +11,7 @@ const navItems = [
   { href: "/admin/contacts", label: "Contacts" },
   { href: "/admin/inbox", label: "Inbox" },
   { href: "/admin/team", label: "Team" },
+  { href: "/admin/newsletter", label: "Newsletter" },
   { href: "/admin/pets/import", label: "Import CSV" },
 ];
 
