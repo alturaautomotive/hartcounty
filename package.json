@@ -14,6 +14,7 @@
     "@prisma/client": "^6.19.3",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.0.7",
+    "@react-email/ui": "^6.0.0",
     "@supabase/supabase-js": "^2.104.1",
     "bcryptjs": "^3.0.3",
     "inngest": "^4.2.4",

@@ -8,6 +8,8 @@ import prisma from "@/lib/prisma";
 const navItems = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/pets", label: "Pets" },
+  { href: "/admin/contacts", label: "Contacts" },
+  { href: "/admin/inbox", label: "Inbox" },
   { href: "/admin/team", label: "Team" },
   { href: "/admin/pets/import", label: "Import CSV" },
 ];
