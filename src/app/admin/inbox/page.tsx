@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 import MessageBubble from "@/components/MessageBubble";
 import { relativeTime } from "@/lib/utils";
 
@@ -75,6 +76,15 @@ export default function InboxPage() {
     setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 5000);
   }, []);
 
+  const supabase = useMemo(
+    () =>
+      createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      ),
+    []
+  );
+
   // Fetch contacts list
   const fetchContacts = useCallback(async () => {
     const res = await fetch("/api/contacts");
@@ -113,43 +123,110 @@ export default function InboxPage() {
     }
   }, [selectedId, fetchThread]);
 
-  // Poll for new messages every 8s — future Supabase Realtime
+  // Supabase Realtime: per-contact Message INSERT + Contact UPDATE
   useEffect(() => {
     if (!selectedId) return;
-    const id = setInterval(async () => {
-      const prevPhone = selected?.phone ?? null;
-      const prevEmail = selected?.email ?? null;
-      const lastMsg = thread[thread.length - 1];
-      const since = lastMsg ? lastMsg.sentAt : "";
-      const url = since
-        ? `/api/inbox/messages?contactId=${selectedId}&since=${encodeURIComponent(since)}`
-        : `/api/inbox/messages?contactId=${selectedId}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const { messages: newMsgs, contact: updatedContact } = await res.json();
-        if (since && newMsgs.length > 0) {
+
+    const contactChannel = supabase
+      .channel(`inbox-${selectedId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "Message",
+          filter: `contactId=eq.${selectedId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as Message;
           setThread((prev) => {
-            const ids = new Set(prev.map((m: Message) => m.id));
-            return [...prev, ...newMsgs.filter((m: Message) => !ids.has(m.id))];
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
           });
-        } else if (!since) {
-          setThread(newMsgs);
+          // Auto-mark inbound messages as read
+          if (newMsg.direction === "INBOUND") {
+            fetch("/api/inbox/messages/read", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ messageId: newMsg.id }),
+            });
+          }
         }
-        if (updatedContact) {
-          if (updatedContact.phone && prevPhone === null) {
-            showToast(`Phone number detected and saved: ${updatedContact.phone}`);
-          }
-          if (updatedContact.email && prevEmail === null) {
-            showToast(`Email detected and saved: ${updatedContact.email}`);
-          }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "Contact",
+          filter: `id=eq.${selectedId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Contact;
+          setContacts((prev) => {
+            const existing = prev.find((c) => c.id === selectedId);
+            if (updated.phone && (existing?.phone ?? null) === null) {
+              showToast(
+                `Phone number detected and saved: ${updated.phone}`
+              );
+            }
+            if (updated.email && (existing?.email ?? null) === null) {
+              showToast(
+                `Email detected and saved: ${updated.email}`
+              );
+            }
+            return prev.map((c) =>
+              c.id === selectedId ? { ...c, ...updated } : c
+            );
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(contactChannel);
+    };
+  }, [selectedId, supabase, showToast]);
+
+  // Supabase Realtime: global Message INSERT for unread dots
+  useEffect(() => {
+    const listChannel = supabase
+      .channel("inbox-list")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "Message" },
+        (payload) => {
+          const newMsg = payload.new as Message;
+          if (newMsg.direction !== "INBOUND") return;
+          // If this message is for the currently-viewed contact, skip (handled above)
+          if (newMsg.contactId === selectedId) return;
           setContacts((prev) =>
-            prev.map((c) => (c.id === selectedId ? { ...c, ...updatedContact } : c))
+            prev.map((c) =>
+              c.id === newMsg.contactId
+                ? {
+                    ...c,
+                    messages: [
+                      {
+                        id: newMsg.id,
+                        body: newMsg.body,
+                        sentAt: newMsg.sentAt,
+                        direction: newMsg.direction,
+                        readAt: null,
+                      },
+                      ...c.messages,
+                    ],
+                  }
+                : c
+            )
           );
         }
-      }
-    }, 8000);
-    return () => clearInterval(id);
-  }, [selectedId, thread, selected, showToast]);
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(listChannel);
+    };
+  }, [supabase, selectedId]);
 
   // Auto-scroll thread
   useEffect(() => {
@@ -623,8 +700,7 @@ export default function InboxPage() {
         {toasts.map(({ id, message }) => (
           <div
             key={id}
-            className="max-w-sm rounded-lg bg-black/90 px-4 py-2.5 text-xs text-white shadow-2xl backdrop-blur-sm"
-            style={{ animation: "slideIn 0.3s ease-out forwards" }}
+            className="max-w-sm rounded-lg bg-neutral-800 px-4 py-2.5 text-xs text-white shadow-2xl backdrop-blur-sm animate-slideIn"
           >
             {message}
           </div>

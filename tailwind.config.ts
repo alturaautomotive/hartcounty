@@ -44,6 +44,15 @@ const config: Config = {
           600: "#d97706",
         },
       },
+      keyframes: {
+        slideIn: {
+          from: { opacity: "0", transform: "translateX(1rem)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
+      },
+      animation: {
+        slideIn: "slideIn 0.3s ease-out forwards",
+      },
       fontFamily: {
         sans: ['"Inter"', "system-ui", "-apple-system", "sans-serif"],
         serif: ['"Georgia"', "Cambria", "serif"],
