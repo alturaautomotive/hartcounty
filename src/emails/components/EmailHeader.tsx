@@ -40,10 +40,13 @@ interface EmailHeaderProps {
   baseUrl: string;
 }
 
+/** Bump when replacing `public/logo.png` so clients don’t reuse a stale cached image. */
+const LOGO_CACHE_KEY = "shelter-seal-2026";
+
 export function EmailHeader({ baseUrl }: EmailHeaderProps) {
   const logoSrc = baseUrl.trim()
-    ? `${siteOrigin(baseUrl)}/logo.png`
-    : "/static/logo.png";
+    ? `${siteOrigin(baseUrl)}/logo.png?v=${LOGO_CACHE_KEY}`
+    : `/static/logo.png?v=${LOGO_CACHE_KEY}`;
 
   return (
     <Container style={styles.container}>

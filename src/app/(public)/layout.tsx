@@ -14,7 +14,7 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <Script
         src={`https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&intent=capture`}
         strategy="beforeInteractive"
@@ -67,6 +67,18 @@ export default function PublicLayout({
       >
         Donate Now
       </Link>
-    </>
+
+      <footer className="mt-auto border-t border-slate-200/50 bg-white/50 py-8 text-center text-xs text-slate-600 backdrop-blur">
+        &copy; 2026 Hart County Animal Rescue.{" "}
+        <Link href="/privacy" className="underline hover:text-amber-600">
+          Privacy Policy
+        </Link>{" "}
+        |{" "}
+        <Link href="/terms" className="underline hover:text-amber-600">
+          Terms
+        </Link>
+        . All rights reserved.
+      </footer>
+    </div>
   );
 }
