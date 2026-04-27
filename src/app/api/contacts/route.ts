@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     orderBy: { updatedAt: "desc" },
   });
 
+  console.log("Contacts fetched:", contacts.length);
   return NextResponse.json(contacts);
 }
 

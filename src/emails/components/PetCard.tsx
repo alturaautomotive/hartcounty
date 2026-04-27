@@ -1,4 +1,7 @@
 import { Img, Link, Text } from "@react-email/components";
+import { emailTheme, siteOrigin } from "../emailTheme";
+
+const sans = { fontFamily: emailTheme.fontSans };
 
 const styles = {
   container: {
@@ -13,22 +16,23 @@ const styles = {
     objectFit: "cover" as const,
   },
   name: {
+    ...sans,
     fontSize: "16px",
-    fontWeight: 700,
-    color: "#1A4F8A",
+    fontWeight: 800,
+    color: emailTheme.slate950,
     margin: "8px 0 2px",
-    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
   },
   details: {
+    ...sans,
     fontSize: "12px",
-    color: "#6B7280",
+    color: emailTheme.textSubtle,
     margin: "0 0 6px",
-    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
   },
   link: {
+    ...sans,
     fontSize: "13px",
-    fontWeight: 600,
-    color: "#E26D5C",
+    fontWeight: 800,
+    color: emailTheme.amber700,
     textDecoration: "none",
   },
 };
@@ -51,11 +55,13 @@ export function PetCard({
   baseUrl,
 }: PetCardProps) {
   const details = [ageCategory, size].filter(Boolean).join(" · ");
+  const origin = siteOrigin(baseUrl);
+  const placeholder = `${origin}/placeholder-pet.png`;
 
   return (
     <div style={styles.container}>
       <Img
-        src={imageUrl || `${baseUrl}/placeholder-pet.png`}
+        src={imageUrl || placeholder}
         width="200"
         height="200"
         alt={name}
@@ -64,7 +70,7 @@ export function PetCard({
       <Text style={styles.name}>{name}</Text>
       {details && <Text style={styles.details}>{details}</Text>}
       {slug && (
-        <Link href={`${baseUrl}/book/${slug}`} style={styles.link}>
+        <Link href={`${origin}/book/${slug}`} style={styles.link}>
           Meet {name} &rarr;
         </Link>
       )}

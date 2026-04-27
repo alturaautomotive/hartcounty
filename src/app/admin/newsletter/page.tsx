@@ -10,9 +10,10 @@ import {
   getNewArrivals,
   getWeeklyDonationStats,
 } from "@/lib/email-data";
+import { getPublicSiteUrl } from "@/lib/site-url";
 import NewsletterClient from "./NewsletterClient";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://hcars.org";
+const BASE_URL = getPublicSiteUrl();
 
 export default async function NewsletterPage() {
   const cookieStore = await cookies();
@@ -33,8 +34,6 @@ export default async function NewsletterPage() {
       petOfMonth: petOfMonth ?? undefined,
       recentlyAdopted,
       newArrivals,
-      weeklyDonorCount: donationStats.count,
-      weeklyDonationTotal: donationStats.total,
       monthlyDonorFirstNames: donationStats.monthlyDonorFirstNames,
       unsubscribeUrl: `${BASE_URL}/api/unsubscribe?token=preview`,
       baseUrl: BASE_URL,

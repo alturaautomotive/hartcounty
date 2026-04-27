@@ -1,32 +1,39 @@
 import { Section, Text } from "@react-email/components";
+import { emailTheme } from "../emailTheme";
+
+const sans = { fontFamily: emailTheme.fontSans };
 
 const styles = {
   section: {
+    ...sans,
     textAlign: "center" as const,
-    padding: "24px",
-    backgroundColor: "#FFFFFF",
-    borderRadius: "12px",
+    padding: "28px 24px",
+    backgroundColor: emailTheme.surface,
+    borderRadius: "16px",
     margin: "0 0 24px",
+    border: `1px solid ${emailTheme.borderAmber}`,
+    boxShadow: "0 12px 40px rgba(15, 23, 42, 0.05)",
   },
   heading: {
-    fontSize: "18px",
-    fontWeight: 800,
-    color: "#1A4F8A",
+    ...sans,
+    fontSize: "20px",
+    fontWeight: 900,
+    letterSpacing: "-0.02em",
+    color: emailTheme.slate950,
     margin: "0 0 8px",
-    fontFamily: "'Georgia', serif",
   },
   subtitle: {
+    ...sans,
     fontSize: "13px",
-    color: "#6B7280",
+    color: emailTheme.textSubtle,
     margin: "0 0 12px",
-    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
   },
   names: {
+    ...sans,
     fontSize: "14px",
-    color: "#4B5563",
+    color: emailTheme.textMuted,
     lineHeight: "1.8",
     margin: "0",
-    fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
   },
 };
 
@@ -37,7 +44,7 @@ interface MonthlyShoutoutProps {
 export function MonthlyShoutout({ donorFirstNames }: MonthlyShoutoutProps) {
   return (
     <Section style={styles.section}>
-      <Text style={styles.heading}>Thank You, Donors!</Text>
+      <Text style={styles.heading}>Thank you, donors!</Text>
       <Text style={styles.subtitle}>
         This month&apos;s generous supporters:
       </Text>

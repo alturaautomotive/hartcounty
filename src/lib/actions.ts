@@ -13,6 +13,7 @@ import crypto from "crypto";
 import type { SurveyAnswers } from "@/types/survey";
 import type { Pet } from "@prisma/client";
 import { uploadImageToSupabase } from "./supabase-storage";
+import { getPublicSiteUrl } from "./site-url";
 
 const emailFrom = () =>
   process.env.RESEND_FROM_EMAIL ?? process.env.EMAIL_FROM ?? "noreply@hcars.org";
@@ -354,11 +355,7 @@ const resetPasswordSchema = z
   });
 
 function getBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    process.env.VERCEL_URL?.replace(/^/, "https://") ??
-    "http://localhost:3000"
-  );
+  return getPublicSiteUrl();
 }
 
 function hashResetToken(token: string) {
@@ -888,155 +885,6 @@ export async function deleteTeamMemberAction(
           : "Failed to delete team member.",
     };
   }
-}
-
-function toSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-export type PreviewPet = {
-  name: string;
-  species: string;
-  breed: string;
-  ageCategory: string;
-  sex: string;
-  size: string;
-  weight: string;
-  color: string;
-  description: string;
-  status: string;
-  price: string;
-  imageUrl: string;
-};
-
-export type PreviewResult =
-  | { success: true; preview: PreviewPet[] }
-  | { success: false; error: string };
-
-export async function previewImportPets(formData: FormData): Promise<PreviewResult> {
-  const file = formData.get("file") as File | null;
-  if (!file) return { success: false, error: "No file provided." };
-
-  const text = await file.text();
-  const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-
-  if (parsed.errors.length > 0) {
-    return { success: false, error: `CSV parse error: ${parsed.errors[0].message}` };
-  }
-
-  const rows = parsed.data as Record<string, string>[];
-  const preview: PreviewPet[] = [];
-
-  for (const row of rows) {
-    const name = (row.title ?? row.name ?? "").trim();
-    if (!name) continue;
-
-    preview.push({
-      name,
-      species: row.species?.trim() || "dog",
-      breed: row.breed?.trim() || "",
-      ageCategory: (row.age ?? row.ageCategory)?.trim() || "",
-      sex: row.sex?.trim() || "",
-      size: row.size?.trim() || "",
-      weight: row.weight?.trim() || "",
-      color: row.color?.trim() || "",
-      description: row.description?.trim() || "",
-      status: row.availability?.toLowerCase() === "adopted" ? "adopted" : "available",
-      price: row.price?.trim() || "",
-      imageUrl: (row.image ?? row.imageUrl)?.trim() || "",
-    });
-  }
-
-  if (preview.length === 0) {
-    return { success: false, error: "No valid rows found in CSV." };
-  }
-
-  return { success: true, preview };
-}
-
-export type ImportResult = { success: true; count: number } | { success: false; error: string };
-
-export async function importPets(formData: FormData): Promise<ImportResult> {
-  const file = formData.get("file") as File | null;
-  if (!file) return { success: false, error: "No file provided." };
-
-  const text = await file.text();
-  const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-
-  if (parsed.errors.length > 0) {
-    return { success: false, error: `CSV parse error: ${parsed.errors[0].message}` };
-  }
-
-  const rows = parsed.data as Record<string, string>[];
-  let count = 0;
-  const slugs: string[] = [];
-
-  for (const row of rows) {
-    const name = (row.title ?? row.name ?? "").trim();
-    if (!name) continue;
-
-    const slug = toSlug(name);
-    const status = row.availability?.toLowerCase() === "adopted" ? "adopted" : "available";
-
-    await prisma.pet.upsert({
-      where: { slug },
-      update: {
-        name,
-        breed: row.breed?.trim() || null,
-        ageCategory: (row.age ?? row.ageCategory)?.trim() || null,
-        sex: row.sex?.trim() || null,
-        size: row.size?.trim() || null,
-        weight: row.weight?.trim() || null,
-        color: row.color?.trim() || null,
-        description: row.description?.trim() || null,
-        status,
-        price: row.price ? parseFloat(row.price) : null,
-        imageUrl: (row.image ?? row.imageUrl)?.trim() || null,
-        adoptionFee: row.price ? parseFloat(row.price) : null,
-      },
-      create: {
-        slug,
-        name,
-        species: row.species?.trim() || "dog",
-        breed: row.breed?.trim() || null,
-        ageCategory: (row.age ?? row.ageCategory)?.trim() || null,
-        sex: row.sex?.trim() || null,
-        size: row.size?.trim() || null,
-        weight: row.weight?.trim() || null,
-        color: row.color?.trim() || null,
-        description: row.description?.trim() || null,
-        status,
-        price: row.price ? parseFloat(row.price) : null,
-        imageUrl: (row.image ?? row.imageUrl)?.trim() || null,
-        adoptionFee: row.price ? parseFloat(row.price) : null,
-      },
-    });
-    slugs.push(slug);
-    count++;
-  }
-
-  if (slugs.length) {
-    const catalogId = process.env.META_CATALOG_ID;
-    const token = process.env.META_CATALOG_ACCESS_TOKEN;
-    if (catalogId && token) {
-      try {
-        const pets = await prisma.pet.findMany({ where: { slug: { in: slugs } } });
-        const changes = pets.map(p => ({ method: 'UPDATE' as const, data: metaRow(p)! })).filter(c => c.data);
-        await updateMetaBatch(catalogId, token, changes as unknown as { id: string; method: "UPDATE"; data: Record<string, string> }[]);
-        console.log(`Synced ${changes.length} pets to Meta`);
-      } catch (e) {
-        console.error('Meta batch sync failed:', e);
-      }
-    }
-  }
-
-  revalidatePath("/admin/pets");
-  revalidatePath("/pets");
-  return { success: true, count };
 }
 
 export async function getExportCsv(): Promise<string> {

@@ -337,13 +337,27 @@ export default function InboxPage() {
       {/* Left panel - Contact list */}
       <div className="flex w-80 shrink-0 flex-col border-r border-neutral-200">
         <div className="border-b border-neutral-200 p-3">
-          <input
-            type="text"
-            placeholder="Search contacts..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Search contacts..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
+            <button
+              onClick={() => {
+                fetchContacts();
+                if (selectedId) fetchThread(selectedId);
+              }}
+              title="Refresh contacts"
+              className="shrink-0 rounded-lg border border-neutral-300 p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M4.93 15.28A8 8 0 0119.07 8.72M19.07 8.72A8 8 0 014.93 15.28" />
+              </svg>
+            </button>
+          </div>
           <div className="mt-2 flex gap-1">
             {(["all", "unread", "leads", "messages"] as Tab[]).map((t) => (
               <button

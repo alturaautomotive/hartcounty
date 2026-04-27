@@ -10,8 +10,9 @@ import {
   getNewArrivals,
   getWeeklyDonationStats,
 } from "@/lib/email-data";
+import { getPublicSiteUrl } from "@/lib/site-url";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://hcars.org";
+const BASE_URL = getPublicSiteUrl();
 const FROM_EMAIL =
   process.env.EMAIL_FROM ?? "Hart County Animal Rescue <newsletter@hcars.org>";
 
@@ -36,8 +37,6 @@ export async function POST() {
       petOfMonth: petOfMonth ?? undefined,
       recentlyAdopted,
       newArrivals,
-      weeklyDonorCount: donationStats.count,
-      weeklyDonationTotal: donationStats.total,
       monthlyDonorFirstNames: donationStats.monthlyDonorFirstNames,
       unsubscribeUrl: `${BASE_URL}/api/unsubscribe?token=test-preview`,
       baseUrl: BASE_URL,

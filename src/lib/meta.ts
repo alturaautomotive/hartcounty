@@ -1,16 +1,15 @@
 import type { Pet } from "@prisma/client";
+import { getPublicSiteUrl } from "./site-url";
 
 function getFeedBaseUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_BASE_URL?.trim() ?? "";
-  if (raw.startsWith("https://")) return raw.replace(/\/+$/, "");
-  return "https://hartcounty.vercel.app";
+  return getPublicSiteUrl().replace(/\/+$/, "");
 }
 
 function getFeedHostname(): string {
   try {
     return new URL(getFeedBaseUrl()).hostname;
   } catch {
-    return "hartcounty.vercel.app";
+    return "localhost";
   }
 }
 
@@ -62,9 +61,7 @@ export function metaImageLink(pet: Pet): string {
     const feedHost = getFeedHostname();
     if (
       url.protocol === "https:" &&
-      (url.hostname === "hcars.org" ||
-        url.hostname.endsWith(".hcars.org") ||
-        url.hostname === feedHost ||
+      (url.hostname === feedHost ||
         url.hostname.endsWith("." + feedHost) ||
         url.hostname.endsWith(".supabase.co"))
     ) {

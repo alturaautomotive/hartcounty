@@ -10,10 +10,11 @@ import {
   getWeeklyDonationStats,
 } from "../lib/email-data";
 import crypto from "crypto";
+import { getPublicSiteUrl } from "../lib/site-url";
 
 const TOKEN_SECRET =
   process.env.ADMIN_SECRET ?? "hart-county-admin-secret-key";
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://hcars.org";
+const BASE_URL = getPublicSiteUrl();
 const FROM_EMAIL =
   process.env.EMAIL_FROM ?? "Hart County Animal Rescue <newsletter@hcars.org>";
 
@@ -75,8 +76,6 @@ export const weeklyDigestJob = inngest.createFunction(
               petOfMonth: data.petOfMonth ?? undefined,
               recentlyAdopted: data.recentlyAdopted,
               newArrivals: data.newArrivals,
-              weeklyDonorCount: data.donationStats.count,
-              weeklyDonationTotal: data.donationStats.total,
               monthlyDonorFirstNames:
                 data.donationStats.monthlyDonorFirstNames,
               unsubscribeUrl,

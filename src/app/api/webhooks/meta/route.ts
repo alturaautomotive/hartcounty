@@ -20,6 +20,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
+  console.log("[META WEBHOOK] Received POST, body length:", rawBody.length);
+  console.log("[META WEBHOOK] Raw body preview:", rawBody.slice(0, 500));
 
   const expected =
     "sha256=" +
@@ -29,19 +31,28 @@ export async function POST(request: NextRequest) {
       .digest("hex");
   const signature = request.headers.get("X-Hub-Signature-256");
   if (signature !== expected) {
+    console.error("[META WEBHOOK] Signature mismatch. Expected:", expected, "Got:", signature);
     return new Response("Forbidden", { status: 403 });
   }
+  console.log("[META WEBHOOK] Signature verified OK");
 
   const body = JSON.parse(rawBody);
 
   try {
     const entry = body.entry?.[0];
-    if (!entry) return new Response("OK", { status: 200 });
+    if (!entry) {
+      console.log("[META WEBHOOK] No entry found in body");
+      return new Response("OK", { status: 200 });
+    }
+
+    console.log("[META WEBHOOK] Entry keys:", Object.keys(entry));
 
     // Leadgen webhook
     const change = entry.changes?.[0];
     if (change?.field === "leadgen") {
+      console.log("[META WEBHOOK] Processing leadgen:", JSON.stringify(change.value));
       await handleLeadgen(change.value);
+      console.log("[META WEBHOOK] Leadgen processed successfully");
       return new Response("OK", { status: 200 });
     }
 
@@ -49,13 +60,18 @@ export async function POST(request: NextRequest) {
     const messaging = entry.messaging?.[0];
     if (messaging) {
       if (messaging.message?.is_echo) {
+        console.log("[META WEBHOOK] Skipping echo message");
         return new Response("OK", { status: 200 });
       }
+      console.log("[META WEBHOOK] Processing messaging from PSID:", messaging.sender?.id, "text:", messaging.message?.text?.slice(0, 100));
       await handleMessaging(messaging);
+      console.log("[META WEBHOOK] Messaging processed successfully");
       return new Response("OK", { status: 200 });
     }
+
+    console.log("[META WEBHOOK] No leadgen or messaging found in entry");
   } catch (err) {
-    console.error("Webhook processing error:", err);
+    console.error("[META WEBHOOK] Processing error:", err);
   }
 
   return new Response("OK", { status: 200 });
@@ -133,7 +149,7 @@ async function handleLeadgen(value: {
   }
 }
 
-async function handleMessaging(messaging: {
+export async function handleMessaging(messaging: {
   sender: { id: string };
   message?: { mid?: string; text?: string };
 }) {
@@ -147,6 +163,7 @@ async function handleMessaging(messaging: {
     update: { source: "messenger_message" },
     create: { fbSenderId: psid, source: "messenger_message" },
   });
+  console.log("[META WEBHOOK] Upserted contact:", contact.id, "for PSID:", psid);
 
   // Fetch profile for name
   try {
@@ -155,6 +172,7 @@ async function handleMessaging(messaging: {
     );
     if (profileRes.ok) {
       const profile = await profileRes.json();
+      console.log("[META WEBHOOK] Profile fetched:", JSON.stringify(profile));
       if (profile.first_name || profile.last_name) {
         await prisma.contact.update({
           where: { id: contact.id },
@@ -164,12 +182,14 @@ async function handleMessaging(messaging: {
           },
         });
       }
+    } else {
+      console.warn("[META WEBHOOK] Profile fetch failed:", profileRes.status, await profileRes.text());
     }
-  } catch {
-    // Profile fetch is best-effort
+  } catch (profileErr) {
+    console.warn("[META WEBHOOK] Profile fetch error:", profileErr);
   }
 
-  await prisma.message.create({
+  const message = await prisma.message.create({
     data: {
       contactId: contact.id,
       channel: "MESSENGER",
@@ -178,10 +198,12 @@ async function handleMessaging(messaging: {
       externalId: mid,
     },
   });
+  console.log("[META WEBHOOK] Created message:", message.id, "for contact:", contact.id);
 
   // Extract phone number from message text
   const phoneRegex = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
   const extractedPhones = text.match(phoneRegex);
+  console.log("[META WEBHOOK] Phone extraction:", extractedPhones);
   if (extractedPhones?.length && !contact.phone) {
     const cleaned = extractedPhones[0].replace(/\D/g, "");
     const normalized =
@@ -195,6 +217,7 @@ async function handleMessaging(messaging: {
   // Extract email from message text
   const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const extractedEmails = text.match(emailRegex);
+  console.log("[META WEBHOOK] Email extraction:", extractedEmails);
   if (extractedEmails?.length && !contact.email) {
     const email = extractedEmails[0].toLowerCase();
     await prisma.contact.update({
