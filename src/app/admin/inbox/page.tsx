@@ -242,6 +242,31 @@ export default function InboxPage() {
     }
   }, [selected]);
 
+  // Fetch subscriber status when selected contact changes
+  useEffect(() => {
+    const email = selected?.email;
+    if (!email) {
+      setIsSubscriber(false);
+      return;
+    }
+    let cancelled = false;
+    setSubscriberLoading(true);
+    fetch(`/api/subscribers?email=${encodeURIComponent(email)}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!cancelled) {
+          setIsSubscriber(!!data?.subscribed);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setIsSubscriber(false);
+      })
+      .finally(() => {
+        if (!cancelled) setSubscriberLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [selected?.email]);
+
   // Filter contacts
   const filteredContacts = contacts.filter((c) => {
     if (search) {

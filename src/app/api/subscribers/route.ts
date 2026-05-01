@@ -11,8 +11,17 @@ export async function GET(request: NextRequest) {
   }
 
   const params = request.nextUrl.searchParams;
+  const email = params.get("email");
   const search = params.get("search");
   const source = params.get("source");
+
+  // Exact email lookup — returns { subscribed: boolean }
+  if (email) {
+    const subscriber = await prisma.subscriber.findUnique({
+      where: { email },
+    });
+    return NextResponse.json({ subscribed: !!subscriber });
+  }
 
   const where: Record<string, unknown> = {};
 
