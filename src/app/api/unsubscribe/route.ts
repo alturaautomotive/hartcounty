@@ -1,9 +1,7 @@
 import { NextRequest } from "next/server";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
-
-const TOKEN_SECRET =
-  process.env.ADMIN_SECRET ?? "hart-county-admin-secret-key";
+import { getTokenSecret } from "@/lib/token-secret";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
@@ -21,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const payload = Buffer.from(payloadB64, "base64").toString();
     const expected = crypto
-      .createHmac("sha256", TOKEN_SECRET)
+      .createHmac("sha256", getTokenSecret())
       .update(payload)
       .digest("hex");
 

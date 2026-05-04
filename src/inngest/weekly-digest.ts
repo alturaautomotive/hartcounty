@@ -11,9 +11,8 @@ import {
 } from "../lib/email-data";
 import crypto from "crypto";
 import { getPublicSiteUrl } from "../lib/site-url";
+import { getTokenSecret } from "../lib/token-secret";
 
-const TOKEN_SECRET =
-  process.env.ADMIN_SECRET ?? "hart-county-admin-secret-key";
 const BASE_URL = getPublicSiteUrl();
 const FROM_EMAIL =
   process.env.EMAIL_FROM ?? "Hart County Animal Rescue <newsletter@hcars.org>";
@@ -21,7 +20,7 @@ const FROM_EMAIL =
 function generateUnsubscribeToken(subscriberId: string): string {
   const payload = JSON.stringify({ id: subscriberId, purpose: "unsubscribe" });
   const hmac = crypto
-    .createHmac("sha256", TOKEN_SECRET)
+    .createHmac("sha256", getTokenSecret())
     .update(payload)
     .digest("hex");
   return Buffer.from(payload).toString("base64") + "." + hmac;

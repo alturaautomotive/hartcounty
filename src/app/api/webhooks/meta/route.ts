@@ -23,10 +23,15 @@ export async function POST(request: NextRequest) {
   console.log("[META WEBHOOK] Received POST, body length:", rawBody.length);
   console.log("[META WEBHOOK] Raw body preview:", rawBody.slice(0, 500));
 
+  if (!process.env.META_APP_SECRET) {
+    console.error("[META WEBHOOK] Missing META_APP_SECRET");
+    return new Response("Webhook not configured", { status: 500 });
+  }
+
   const expected =
     "sha256=" +
     crypto
-      .createHmac("sha256", process.env.META_APP_SECRET!)
+      .createHmac("sha256", process.env.META_APP_SECRET)
       .update(rawBody)
       .digest("hex");
   const signature = request.headers.get("X-Hub-Signature-256");
@@ -72,6 +77,7 @@ export async function POST(request: NextRequest) {
     console.log("[META WEBHOOK] No leadgen or messaging found in entry");
   } catch (err) {
     console.error("[META WEBHOOK] Processing error:", err);
+    return new Response("Processing error", { status: 500 });
   }
 
   return new Response("OK", { status: 200 });
@@ -89,8 +95,7 @@ async function handleLeadgen(value: {
     `https://graph.facebook.com/v20.0/${leadgen_id}?access_token=${encodeURIComponent(pageToken)}`,
   );
   if (!res.ok) {
-    console.error("Failed to fetch lead:", await res.text());
-    return;
+    throw new Error(`Failed to fetch lead: ${res.status} ${await res.text()}`);
   }
   const lead = await res.json();
   const fields: Record<string, string> = {};
@@ -200,6 +205,22 @@ export async function handleMessaging(messaging: {
   });
   console.log("[META WEBHOOK] Created message:", message.id, "for contact:", contact.id);
 
+  try {
+    await extractContactInfo(contact, text);
+  } catch (extractErr) {
+    console.warn("[META WEBHOOK] Contact info extraction failed:", extractErr);
+  }
+}
+
+async function extractContactInfo(
+  contact: {
+    id: string;
+    firstName: string | null;
+    phone: string | null;
+    email: string | null;
+  },
+  text: string
+) {
   // Extract phone number from message text
   const phoneRegex = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
   const extractedPhones = text.match(phoneRegex);
