@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import crypto from "crypto";
 
-const TOKEN_SECRET = process.env.ADMIN_SECRET ?? "hart-county-admin-secret-key";
+function getTokenSecret(): string | null {
+  const secret = process.env.ADMIN_SECRET?.trim();
+  if (secret) return secret;
+  if (process.env.NODE_ENV !== "production") {
+    return "hart-county-admin-dev-secret-key";
+  }
+  console.error("ADMIN_SECRET is required to verify admin sessions.");
+  return null;
+}
+
 const publicAdminRoutes = new Set([
   "/admin/login",
   "/admin/forgot-password",
@@ -13,8 +22,10 @@ function verifyToken(token: string): boolean {
   try {
     const [payloadB64, sig] = token.split(".");
     if (!payloadB64 || !sig) return false;
+    const tokenSecret = getTokenSecret();
+    if (!tokenSecret) return false;
     const payload = Buffer.from(payloadB64, "base64").toString();
-    const expected = crypto.createHmac("sha256", TOKEN_SECRET).update(payload).digest("hex");
+    const expected = crypto.createHmac("sha256", tokenSecret).update(payload).digest("hex");
     if (sig !== expected) return false;
     const data = JSON.parse(payload);
     return data.exp > Date.now();

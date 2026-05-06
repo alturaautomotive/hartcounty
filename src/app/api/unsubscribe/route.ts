@@ -2,8 +2,17 @@ import { NextRequest } from "next/server";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
 
-const TOKEN_SECRET =
-  process.env.ADMIN_SECRET ?? "hart-county-admin-secret-key";
+function getTokenSecret(): string | null {
+  const secret = process.env.ADMIN_SECRET?.trim();
+  if (secret) return secret;
+
+  if (process.env.NODE_ENV !== "production") {
+    return "hart-county-admin-dev-secret-key";
+  }
+
+  console.error("ADMIN_SECRET is required to verify unsubscribe tokens.");
+  return null;
+}
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
@@ -19,9 +28,12 @@ export async function GET(request: NextRequest) {
     const [payloadB64, sig] = token.split(".");
     if (!payloadB64 || !sig) throw new Error("malformed");
 
+    const tokenSecret = getTokenSecret();
+    if (!tokenSecret) throw new Error("missing token secret");
+
     const payload = Buffer.from(payloadB64, "base64").toString();
     const expected = crypto
-      .createHmac("sha256", TOKEN_SECRET)
+      .createHmac("sha256", tokenSecret)
       .update(payload)
       .digest("hex");
 
