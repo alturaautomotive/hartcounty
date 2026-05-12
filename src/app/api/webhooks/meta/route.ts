@@ -2,6 +2,34 @@ import crypto from "crypto";
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
+type LeadgenChange = {
+  field?: string;
+  value: {
+    leadgen_id: string;
+    ad_id?: string;
+    form_id?: string;
+  };
+};
+
+type MessagingEvent = {
+  sender: { id: string };
+  message?: { mid?: string; text?: string; is_echo?: boolean };
+};
+
+type MetaWebhookEntry = {
+  changes?: LeadgenChange[];
+  messaging?: MessagingEvent[];
+};
+
+type MetaWebhookBody = {
+  entry?: MetaWebhookEntry[];
+};
+
+type MetaWebhookHandlers = {
+  handleLeadgen: (value: LeadgenChange["value"]) => Promise<void>;
+  handleMessaging: (messaging: MessagingEvent) => Promise<void>;
+};
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const mode = params.get("hub.mode");
@@ -36,45 +64,55 @@ export async function POST(request: NextRequest) {
   }
   console.log("[META WEBHOOK] Signature verified OK");
 
-  const body = JSON.parse(rawBody);
+  const body = JSON.parse(rawBody) as MetaWebhookBody;
 
   try {
-    const entry = body.entry?.[0];
-    if (!entry) {
-      console.log("[META WEBHOOK] No entry found in body");
-      return new Response("OK", { status: 200 });
-    }
-
-    console.log("[META WEBHOOK] Entry keys:", Object.keys(entry));
-
-    // Leadgen webhook
-    const change = entry.changes?.[0];
-    if (change?.field === "leadgen") {
-      console.log("[META WEBHOOK] Processing leadgen:", JSON.stringify(change.value));
-      await handleLeadgen(change.value);
-      console.log("[META WEBHOOK] Leadgen processed successfully");
-      return new Response("OK", { status: 200 });
-    }
-
-    // Messaging webhook
-    const messaging = entry.messaging?.[0];
-    if (messaging) {
-      if (messaging.message?.is_echo) {
-        console.log("[META WEBHOOK] Skipping echo message");
-        return new Response("OK", { status: 200 });
-      }
-      console.log("[META WEBHOOK] Processing messaging from PSID:", messaging.sender?.id, "text:", messaging.message?.text?.slice(0, 100));
-      await handleMessaging(messaging);
-      console.log("[META WEBHOOK] Messaging processed successfully");
-      return new Response("OK", { status: 200 });
-    }
-
-    console.log("[META WEBHOOK] No leadgen or messaging found in entry");
+    await processMetaWebhookBody(body);
   } catch (err) {
     console.error("[META WEBHOOK] Processing error:", err);
+    return new Response("Webhook processing failed", { status: 500 });
   }
 
   return new Response("OK", { status: 200 });
+}
+
+export async function processMetaWebhookBody(
+  body: MetaWebhookBody,
+  handlers: MetaWebhookHandlers = { handleLeadgen, handleMessaging }
+) {
+  const entries = Array.isArray(body.entry) ? body.entry : [];
+  if (entries.length === 0) {
+    console.log("[META WEBHOOK] No entry found in body");
+    return;
+  }
+
+  for (const entry of entries) {
+    console.log("[META WEBHOOK] Entry keys:", Object.keys(entry));
+
+    for (const change of entry.changes ?? []) {
+      if (change?.field !== "leadgen") continue;
+
+      console.log("[META WEBHOOK] Processing leadgen:", JSON.stringify(change.value));
+      await handlers.handleLeadgen(change.value);
+      console.log("[META WEBHOOK] Leadgen processed successfully");
+    }
+
+    for (const messaging of entry.messaging ?? []) {
+      if (messaging.message?.is_echo) {
+        console.log("[META WEBHOOK] Skipping echo message");
+        continue;
+      }
+
+      console.log(
+        "[META WEBHOOK] Processing messaging from PSID:",
+        messaging.sender?.id,
+        "text:",
+        messaging.message?.text?.slice(0, 100)
+      );
+      await handlers.handleMessaging(messaging);
+      console.log("[META WEBHOOK] Messaging processed successfully");
+    }
+  }
 }
 
 async function handleLeadgen(value: {
@@ -89,8 +127,7 @@ async function handleLeadgen(value: {
     `https://graph.facebook.com/v20.0/${leadgen_id}?access_token=${encodeURIComponent(pageToken)}`,
   );
   if (!res.ok) {
-    console.error("Failed to fetch lead:", await res.text());
-    return;
+    throw new Error(`Failed to fetch lead ${leadgen_id}: ${await res.text()}`);
   }
   const lead = await res.json();
   const fields: Record<string, string> = {};
@@ -189,16 +226,32 @@ export async function handleMessaging(messaging: {
     console.warn("[META WEBHOOK] Profile fetch error:", profileErr);
   }
 
-  const message = await prisma.message.create({
-    data: {
-      contactId: contact.id,
-      channel: "MESSENGER",
-      direction: "INBOUND",
-      body: text,
-      externalId: mid,
-    },
-  });
-  console.log("[META WEBHOOK] Created message:", message.id, "for contact:", contact.id);
+  const existingMessage = mid
+    ? await prisma.message.findFirst({
+        where: { externalId: mid },
+        select: { id: true },
+      })
+    : null;
+
+  if (existingMessage) {
+    console.log(
+      "[META WEBHOOK] Message already exists:",
+      existingMessage.id,
+      "for Meta mid:",
+      mid
+    );
+  } else {
+    const message = await prisma.message.create({
+      data: {
+        contactId: contact.id,
+        channel: "MESSENGER",
+        direction: "INBOUND",
+        body: text,
+        externalId: mid,
+      },
+    });
+    console.log("[META WEBHOOK] Created message:", message.id, "for contact:", contact.id);
+  }
 
   // Extract phone number from message text
   const phoneRegex = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
