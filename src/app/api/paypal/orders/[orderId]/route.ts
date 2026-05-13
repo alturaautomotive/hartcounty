@@ -1,5 +1,6 @@
 import { getAccessToken, captureOrder } from "@/lib/paypal";
 import prisma from "@/lib/prisma";
+import { buildCapturedOrderDonation } from "@/lib/paypal-donations";
 
 export async function PATCH(
   request: Request,
@@ -12,22 +13,21 @@ export async function PATCH(
 
     const accessToken = await getAccessToken();
     const capture = await captureOrder(accessToken, orderId);
+    const donation = buildCapturedOrderDonation(
+      capture,
+      orderId,
+      interval ?? "one-time"
+    );
 
-    const unit = capture.purchase_units?.[0];
-    const amount = parseFloat(unit?.payments?.captures?.[0]?.amount?.value ?? "0");
-    const petId = unit?.custom_id || null;
-    const payer = capture.payer;
-
-    await prisma.donation.create({
-      data: {
-        amount,
-        interval: interval ?? "one-time",
-        petId,
-        paypalTransactionId: orderId,
-        name: payer?.name
-          ? `${payer.name.given_name} ${payer.name.surname}`
-          : null,
-        email: payer?.email_address ?? null,
+    await prisma.donation.upsert({
+      where: { paypalTransactionId: donation.paypalTransactionId },
+      create: donation,
+      update: {
+        amount: donation.amount,
+        interval: donation.interval,
+        petId: donation.petId,
+        name: donation.name,
+        email: donation.email,
       },
     });
 
