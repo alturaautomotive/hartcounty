@@ -36,7 +36,7 @@ export default function MonthlyButtons() {
             const res = await fetch("/api/paypal/subscriptions", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ planId: process.env.NEXT_PUBLIC_MONTHLY_PLAN_ID, interval: "monthly" }),
+              body: JSON.stringify({ interval: "monthly" }),
             });
             const data = await res.json();
             return data.id;
