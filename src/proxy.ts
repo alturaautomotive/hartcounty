@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import crypto from "crypto";
-import { getAdminTokenSecret } from "./lib/token-secret";
 const publicAdminRoutes = new Set([
   "/admin/login",
   "/admin/forgot-password",
   "/admin/reset-password",
 ]);
+
+function getTokenSecret(): string {
+  const secret = process.env.ADMIN_SECRET?.trim();
+  if (secret) return secret;
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("ADMIN_SECRET is required in production.");
+  }
+
+  return "hart-county-admin-dev-secret";
+}
 
 function verifyToken(token: string): boolean {
   try {
@@ -14,7 +24,7 @@ function verifyToken(token: string): boolean {
     if (!payloadB64 || !sig) return false;
     const payload = Buffer.from(payloadB64, "base64").toString();
     const expected = crypto
-      .createHmac("sha256", getAdminTokenSecret())
+      .createHmac("sha256", getTokenSecret())
       .update(payload)
       .digest("hex");
     const expectedBuffer = Buffer.from(expected);
