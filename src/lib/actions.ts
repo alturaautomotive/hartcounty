@@ -906,6 +906,7 @@ export async function getExportCsv(): Promise<string> {
 }
 
 export async function updateBookingStatus(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
   if (!id || !status) return;

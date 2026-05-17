@@ -3,12 +3,11 @@ import { getAccessToken, createSubscription } from "@/lib/paypal";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { planId, petId } = body as {
-      planId?: string;
+    const { petId } = body as {
       petId?: string;
     };
 
-    const resolvedPlanId = planId ?? process.env.NEXT_PUBLIC_MONTHLY_PLAN_ID;
+    const resolvedPlanId = process.env.NEXT_PUBLIC_MONTHLY_PLAN_ID;
     if (!resolvedPlanId) {
       return Response.json(
         { error: "Missing plan ID" },
