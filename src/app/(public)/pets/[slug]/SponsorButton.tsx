@@ -19,13 +19,14 @@ export default function SponsorButton({
   const rendered = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
     rendered.current = false;
     if (containerRef.current) {
       containerRef.current.innerHTML = "";
     }
 
     function renderButton(paypal: PayPalNamespace) {
-      if (rendered.current || !containerRef.current) return;
+      if (cancelled || rendered.current || !containerRef.current) return;
       rendered.current = true;
 
       paypal.Buttons({
@@ -85,6 +86,9 @@ export default function SponsorButton({
       loadPayPalSubscriptionSdk()
         .then(renderButton)
         .catch((err) => console.error("Failed to load PayPal subscriptions:", err));
+      return () => {
+        cancelled = true;
+      };
     } else if (window.paypal) {
       renderButton(window.paypal);
     } else {
@@ -94,8 +98,15 @@ export default function SponsorButton({
           renderButton(window.paypal);
         }
       }, 200);
-      return () => clearInterval(timer);
+      return () => {
+        cancelled = true;
+        clearInterval(timer);
+      };
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [petId, isMonthly]);
 
   if (thankYou) {

@@ -42,15 +42,19 @@ export function loadPayPalSubscriptionSdk(): Promise<PayPalNamespace> {
       if (window.paypalSubscriptions) {
         resolve(window.paypalSubscriptions);
       } else {
+        subscriptionSdkPromise = null;
         reject(new Error("PayPal subscription SDK did not initialize"));
       }
     };
 
+    const handleError = () => {
+      subscriptionSdkPromise = null;
+      reject(new Error("Failed to load PayPal subscription SDK"));
+    };
+
     if (existing) {
       existing.addEventListener("load", handleLoad, { once: true });
-      existing.addEventListener("error", () => reject(new Error("Failed to load PayPal subscription SDK")), {
-        once: true,
-      });
+      existing.addEventListener("error", handleError, { once: true });
       return;
     }
 
@@ -62,9 +66,7 @@ export function loadPayPalSubscriptionSdk(): Promise<PayPalNamespace> {
     script.async = true;
     script.setAttribute("data-namespace", "paypalSubscriptions");
     script.addEventListener("load", handleLoad, { once: true });
-    script.addEventListener("error", () => reject(new Error("Failed to load PayPal subscription SDK")), {
-      once: true,
-    });
+    script.addEventListener("error", handleError, { once: true });
 
     document.head.appendChild(script);
   });
