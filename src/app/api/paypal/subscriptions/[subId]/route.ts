@@ -1,4 +1,4 @@
-import { getAccessToken, activateSubscription } from "@/lib/paypal";
+import { getAccessToken, getSubscription } from "@/lib/paypal";
 import prisma from "@/lib/prisma";
 
 export async function PATCH(
@@ -9,7 +9,13 @@ export async function PATCH(
     const { subId } = await params;
 
     const accessToken = await getAccessToken();
-    const sub = await activateSubscription(accessToken, subId);
+    const sub = await getSubscription(accessToken, subId);
+    if (sub.status !== "ACTIVE") {
+      return Response.json(
+        { error: "PayPal subscription is not active" },
+        { status: 400 }
+      );
+    }
 
     const name = sub.subscriber?.name
       ? `${sub.subscriber.name.given_name} ${sub.subscriber.name.surname}`
@@ -17,14 +23,22 @@ export async function PATCH(
     const email = sub.subscriber?.email_address ?? null;
     const petId = sub.custom_id === "general" ? null : sub.custom_id;
 
-    await prisma.donation.create({
-      data: {
+    await prisma.donation.upsert({
+      where: { paypalTransactionId: subId },
+      create: {
         amount: 25,
         interval: "monthly",
         name,
         email,
         petId,
         paypalTransactionId: subId,
+      },
+      update: {
+        amount: 25,
+        interval: "monthly",
+        name,
+        email,
+        petId,
       },
     });
 

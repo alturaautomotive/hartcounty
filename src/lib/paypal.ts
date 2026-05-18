@@ -103,20 +103,19 @@ export async function createSubscription(
   return res.json();
 }
 
-export async function activateSubscription(accessToken: string, subId: string) {
+export async function getSubscription(accessToken: string, subId: string) {
   const res = await fetch(
-    `${PAYPAL_BASE}/v1/billing/subscriptions/${encodeURIComponent(subId)}/activate`,
+    `${PAYPAL_BASE}/v1/billing/subscriptions/${encodeURIComponent(subId)}`,
     {
-      method: "POST",
+      method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
       },
     }
   );
 
   if (!res.ok) {
-    throw new Error(`PayPal activateSubscription failed: ${res.status} ${await res.text()}`);
+    throw new Error(`PayPal getSubscription failed: ${res.status} ${await res.text()}`);
   }
 
   return res.json();
