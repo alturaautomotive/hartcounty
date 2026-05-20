@@ -493,6 +493,7 @@ export async function createAdminUser(
   name?: string,
   role: "super_admin" | "manager" = "manager"
 ) {
+  await requireSuperAdmin();
   const passwordHash = await bcrypt.hash(password, 10);
   return prisma.adminUser.create({
     data: { email, passwordHash, name: name ?? null, role },
@@ -671,6 +672,7 @@ export async function updatePet(
   id: string,
   data: Record<string, unknown>
 ) {
+  await requireAdmin();
   await prisma.pet.update({ where: { id }, data });
   revalidatePath("/admin/pets");
   revalidatePath("/pets");
@@ -906,9 +908,13 @@ export async function getExportCsv(): Promise<string> {
 }
 
 export async function updateBookingStatus(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
   if (!id || !status) return;
+  if (!["pending", "confirmed", "cancelled"].includes(status)) {
+    throw new Error("Invalid booking status.");
+  }
   await prisma.bookingRequest.update({ where: { id }, data: { status } });
   revalidatePath("/admin");
 }

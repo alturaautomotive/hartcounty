@@ -2,6 +2,29 @@ import crypto from "crypto";
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
+type MetaLeadgenChange = {
+  field?: string;
+  value: {
+    leadgen_id: string;
+    ad_id?: string;
+    form_id?: string;
+  };
+};
+
+type MetaMessagingEvent = {
+  sender?: { id?: string };
+  message?: { mid?: string; text?: string; is_echo?: boolean };
+};
+
+type MetaWebhookEntry = {
+  changes?: MetaLeadgenChange[];
+  messaging?: MetaMessagingEvent[];
+};
+
+type MetaWebhookBody = {
+  entry?: MetaWebhookEntry[];
+};
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const mode = params.get("hub.mode");
@@ -36,45 +59,60 @@ export async function POST(request: NextRequest) {
   }
   console.log("[META WEBHOOK] Signature verified OK");
 
-  const body = JSON.parse(rawBody);
+  let body: MetaWebhookBody;
+  try {
+    body = JSON.parse(rawBody) as MetaWebhookBody;
+  } catch (err) {
+    console.error("[META WEBHOOK] Invalid JSON body:", err);
+    return new Response("Bad Request", { status: 400 });
+  }
 
   try {
-    const entry = body.entry?.[0];
-    if (!entry) {
+    const entries = body.entry ?? [];
+    if (entries.length === 0) {
       console.log("[META WEBHOOK] No entry found in body");
       return new Response("OK", { status: 200 });
     }
 
-    console.log("[META WEBHOOK] Entry keys:", Object.keys(entry));
+    let processed = 0;
+    for (const entry of entries) {
+      console.log("[META WEBHOOK] Entry keys:", Object.keys(entry));
 
-    // Leadgen webhook
-    const change = entry.changes?.[0];
-    if (change?.field === "leadgen") {
-      console.log("[META WEBHOOK] Processing leadgen:", JSON.stringify(change.value));
-      await handleLeadgen(change.value);
-      console.log("[META WEBHOOK] Leadgen processed successfully");
-      return new Response("OK", { status: 200 });
-    }
-
-    // Messaging webhook
-    const messaging = entry.messaging?.[0];
-    if (messaging) {
-      if (messaging.message?.is_echo) {
-        console.log("[META WEBHOOK] Skipping echo message");
-        return new Response("OK", { status: 200 });
+      for (const change of entry.changes ?? []) {
+        if (change.field !== "leadgen") continue;
+        console.log("[META WEBHOOK] Processing leadgen:", JSON.stringify(change.value));
+        await handleLeadgen(change.value);
+        processed++;
+        console.log("[META WEBHOOK] Leadgen processed successfully");
       }
-      console.log("[META WEBHOOK] Processing messaging from PSID:", messaging.sender?.id, "text:", messaging.message?.text?.slice(0, 100));
-      await handleMessaging(messaging);
-      console.log("[META WEBHOOK] Messaging processed successfully");
-      return new Response("OK", { status: 200 });
+
+      for (const messaging of entry.messaging ?? []) {
+        if (messaging.message?.is_echo) {
+          console.log("[META WEBHOOK] Skipping echo message");
+          continue;
+        }
+        if (!messaging.sender?.id) {
+          throw new Error("Messaging event missing sender id.");
+        }
+        console.log("[META WEBHOOK] Processing messaging from PSID:", messaging.sender.id, "text:", messaging.message?.text?.slice(0, 100));
+        await handleMessaging({
+          sender: { id: messaging.sender.id },
+          message: messaging.message,
+        });
+        processed++;
+        console.log("[META WEBHOOK] Messaging processed successfully");
+      }
     }
 
-    console.log("[META WEBHOOK] No leadgen or messaging found in entry");
+    if (processed === 0) {
+      console.log("[META WEBHOOK] No leadgen or messaging found in entries");
+    }
+
+    return new Response("OK", { status: 200 });
   } catch (err) {
     console.error("[META WEBHOOK] Processing error:", err);
+    return new Response("Webhook processing failed", { status: 500 });
   }
-
-  return new Response("OK", { status: 200 });
 }
 
 async function handleLeadgen(value: {
@@ -89,8 +127,7 @@ async function handleLeadgen(value: {
     `https://graph.facebook.com/v20.0/${leadgen_id}?access_token=${encodeURIComponent(pageToken)}`,
   );
   if (!res.ok) {
-    console.error("Failed to fetch lead:", await res.text());
-    return;
+    throw new Error(`Failed to fetch lead: ${res.status} ${await res.text()}`);
   }
   const lead = await res.json();
   const fields: Record<string, string> = {};
