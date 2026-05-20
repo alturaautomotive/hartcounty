@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import MessageBubble from "@/components/MessageBubble";
 import { relativeTime } from "@/lib/utils";
 
@@ -49,6 +48,15 @@ function initials(c: Contact) {
 
 type Tab = "all" | "unread" | "leads" | "messages";
 
+type FetchContactsOptions = {
+  showLoading?: boolean;
+  notify?: boolean;
+};
+
+type FetchThreadOptions = {
+  showLoading?: boolean;
+};
+
 export default function InboxPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -76,157 +84,91 @@ export default function InboxPage() {
     setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 5000);
   }, []);
 
-  const supabase = useMemo(
-    () =>
-      createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      ),
-    []
-  );
-
   // Fetch contacts list
-  const fetchContacts = useCallback(async () => {
-    const res = await fetch("/api/contacts");
-    if (res.ok) {
-      const data: Contact[] = await res.json();
-      setContacts(data);
+  const fetchContacts = useCallback(async (options: FetchContactsOptions = {}) => {
+    const { showLoading = false, notify = false } = options;
+    if (showLoading) setContactsLoading(true);
+    try {
+      const res = await fetch("/api/contacts");
+      if (res.ok) {
+        const data: Contact[] = await res.json();
+        setContacts((prev) => {
+          if (notify && selectedId) {
+            const previous = prev.find((c) => c.id === selectedId);
+            const next = data.find((c) => c.id === selectedId);
+            if (next?.phone && (previous?.phone ?? null) === null) {
+              showToast(`Phone number detected and saved: ${next.phone}`);
+            }
+            if (next?.email && (previous?.email ?? null) === null) {
+              showToast(`Email detected and saved: ${next.email}`);
+            }
+          }
+          return data;
+        });
+      }
+    } finally {
+      if (showLoading) setContactsLoading(false);
     }
-    setContactsLoading(false);
-  }, []);
+  }, [selectedId, showToast]);
 
   useEffect(() => {
-    fetchContacts();
+    fetchContacts({ showLoading: true });
+  }, [fetchContacts]);
+
+  // Poll through authenticated API routes instead of exposing database realtime.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      fetchContacts({ notify: true });
+    }, 10000);
+    return () => window.clearInterval(intervalId);
   }, [fetchContacts]);
 
   // Fetch thread for selected contact
-  const fetchThread = useCallback(async (contactId: string) => {
-    setThreadLoading(true);
-    const res = await fetch(`/api/inbox/messages?contactId=${contactId}`);
-    if (res.ok) {
-      const { messages, contact: updatedContact } = await res.json();
-      setThread(messages);
-      if (updatedContact) {
-        setContacts((prev) =>
-          prev.map((c) => (c.id === contactId ? { ...c, ...updatedContact } : c))
-        );
+  const fetchThread = useCallback(async (
+    contactId: string,
+    options: FetchThreadOptions = {}
+  ) => {
+    const { showLoading = true } = options;
+    if (showLoading) setThreadLoading(true);
+    try {
+      const res = await fetch(`/api/inbox/messages?contactId=${contactId}`);
+      if (res.ok) {
+        const { messages, contact: updatedContact } = await res.json();
+        setThread(messages);
+        if (updatedContact) {
+          setContacts((prev) =>
+            prev.map((c) => (c.id === contactId ? { ...c, ...updatedContact } : c))
+          );
+        }
+        for (const message of messages as Message[]) {
+          if (message.direction !== "INBOUND" || message.readAt) continue;
+          void fetch("/api/inbox/messages/read", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messageId: message.id }),
+          });
+        }
       }
+    } finally {
+      if (showLoading) setThreadLoading(false);
     }
-    setThreadLoading(false);
   }, []);
 
   useEffect(() => {
     if (selectedId) {
-      fetchThread(selectedId);
+      fetchThread(selectedId, { showLoading: true });
     } else {
       setThread([]);
     }
   }, [selectedId, fetchThread]);
 
-  // Supabase Realtime: per-contact Message INSERT + Contact UPDATE
   useEffect(() => {
     if (!selectedId) return;
-
-    const contactChannel = supabase
-      .channel(`inbox-${selectedId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "Message",
-          filter: `contactId=eq.${selectedId}`,
-        },
-        (payload) => {
-          const newMsg = payload.new as Message;
-          setThread((prev) => {
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
-          // Auto-mark inbound messages as read
-          if (newMsg.direction === "INBOUND") {
-            fetch("/api/inbox/messages/read", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ messageId: newMsg.id }),
-            });
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "Contact",
-          filter: `id=eq.${selectedId}`,
-        },
-        (payload) => {
-          const updated = payload.new as Contact;
-          setContacts((prev) => {
-            const existing = prev.find((c) => c.id === selectedId);
-            if (updated.phone && (existing?.phone ?? null) === null) {
-              showToast(
-                `Phone number detected and saved: ${updated.phone}`
-              );
-            }
-            if (updated.email && (existing?.email ?? null) === null) {
-              showToast(
-                `Email detected and saved: ${updated.email}`
-              );
-            }
-            return prev.map((c) =>
-              c.id === selectedId ? { ...c, ...updated } : c
-            );
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(contactChannel);
-    };
-  }, [selectedId, supabase, showToast]);
-
-  // Supabase Realtime: global Message INSERT for unread dots
-  useEffect(() => {
-    const listChannel = supabase
-      .channel("inbox-list")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "Message" },
-        (payload) => {
-          const newMsg = payload.new as Message;
-          if (newMsg.direction !== "INBOUND") return;
-          // If this message is for the currently-viewed contact, skip (handled above)
-          if (newMsg.contactId === selectedId) return;
-          setContacts((prev) =>
-            prev.map((c) =>
-              c.id === newMsg.contactId
-                ? {
-                    ...c,
-                    messages: [
-                      {
-                        id: newMsg.id,
-                        body: newMsg.body,
-                        sentAt: newMsg.sentAt,
-                        direction: newMsg.direction,
-                        readAt: null,
-                      },
-                      ...c.messages,
-                    ],
-                  }
-                : c
-            )
-          );
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(listChannel);
-    };
-  }, [supabase, selectedId]);
+    const intervalId = window.setInterval(() => {
+      fetchThread(selectedId, { showLoading: false });
+    }, 5000);
+    return () => window.clearInterval(intervalId);
+  }, [selectedId, fetchThread]);
 
   // Auto-scroll thread
   useEffect(() => {
@@ -266,7 +208,6 @@ export default function InboxPage() {
       });
     return () => { cancelled = true; };
   }, [selected?.email]);
-
   // Filter contacts
   const filteredContacts = contacts.filter((c) => {
     if (search) {
