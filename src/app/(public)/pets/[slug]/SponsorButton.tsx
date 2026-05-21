@@ -33,23 +33,45 @@ export default function SponsorButton({
       rendered.current = true;
 
       window.paypal.Buttons({
-        style: { shape: "rect", color: "gold", label: "donate", layout: "horizontal" },
-        createOrder: async () => {
-          const endpoint = `/api/paypal/${isMonthly ? "subscriptions" : "orders"}`;
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              amount: 25,
-              interval: isMonthly ? "monthly" : "one-time",
-              petId,
-            }),
-          });
-          const data = await res.json();
-          return data.id;
+        style: {
+          shape: "rect",
+          color: "gold",
+          label: isMonthly ? "subscribe" : "donate",
+          layout: "horizontal",
         },
-        onApprove: async (data: { orderID: string; subscriptionID?: string }) => {
+        ...(isMonthly
+          ? {
+              createSubscription: async () => {
+                const res = await fetch("/api/paypal/subscriptions", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    planId: process.env.NEXT_PUBLIC_MONTHLY_PLAN_ID,
+                    petId,
+                  }),
+                });
+                const data = await res.json();
+                return data.id;
+              },
+            }
+          : {
+              createOrder: async () => {
+                const res = await fetch("/api/paypal/orders", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    amount: 25,
+                    interval: "one-time",
+                    petId,
+                  }),
+                });
+                const data = await res.json();
+                return data.id;
+              },
+            }),
+        onApprove: async (data: { orderID?: string; subscriptionID?: string }) => {
           const id = isMonthly ? data.subscriptionID : data.orderID;
+          if (!id) return;
           const endpoint = isMonthly ? "subscriptions" : "orders";
           await fetch(`/api/paypal/${endpoint}/${id}`, {
             method: "PATCH",
