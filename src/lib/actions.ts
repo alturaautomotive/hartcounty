@@ -493,6 +493,7 @@ export async function createAdminUser(
   name?: string,
   role: "super_admin" | "manager" = "manager"
 ) {
+  await requireSuperAdmin();
   const passwordHash = await bcrypt.hash(password, 10);
   return prisma.adminUser.create({
     data: { email, passwordHash, name: name ?? null, role },
@@ -671,6 +672,7 @@ export async function updatePet(
   id: string,
   data: Record<string, unknown>
 ) {
+  await requireAdmin();
   await prisma.pet.update({ where: { id }, data });
   revalidatePath("/admin/pets");
   revalidatePath("/pets");
@@ -781,9 +783,8 @@ export async function deletePet(formData: FormData): Promise<void> {
     }
   }
 
-  // Delete related bookings and donations first
+  // Delete related bookings first; donation history is preserved by the FK's SET NULL.
   await prisma.bookingRequest.deleteMany({ where: { petId: id } });
-  await prisma.donation.deleteMany({ where: { petId: id } });
   await prisma.pet.delete({ where: { id } });
   revalidatePath("/admin/pets");
   revalidatePath("/pets");
@@ -888,6 +889,7 @@ export async function deleteTeamMemberAction(
 }
 
 export async function getExportCsv(): Promise<string> {
+  await requireAdmin();
   const pets = await prisma.pet.findMany({ orderBy: { name: "asc" } });
   const rows = pets.map((p) => ({
     title: p.name,
@@ -906,9 +908,10 @@ export async function getExportCsv(): Promise<string> {
 }
 
 export async function updateBookingStatus(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
-  if (!id || !status) return;
+  if (!id || !["pending", "confirmed", "cancelled"].includes(status)) return;
   await prisma.bookingRequest.update({ where: { id }, data: { status } });
   revalidatePath("/admin");
 }
