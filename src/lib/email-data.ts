@@ -1,27 +1,50 @@
 import prisma from "./prisma";
 
+type PetOfMonth = {
+  name: string;
+  imageUrl: string | null;
+  description: string | null;
+  slug: string;
+};
+
+function toPetOfMonth(pet: PetOfMonth) {
+  return {
+    name: pet.name,
+    imageUrl: pet.imageUrl!,
+    description: pet.description!,
+    slug: pet.slug,
+  };
+}
+
 export async function getPetOfMonth() {
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
   return prisma.$transaction(async (tx) => {
+    const currentPet = await tx.pet.findFirst({
+      where: { status: "available", featuredMonth: currentMonth },
+      orderBy: [{ lastFeaturedAt: "desc" }, { createdAt: "asc" }],
+    });
+
+    if (currentPet) {
+      return toPetOfMonth(currentPet);
+    }
+
     const pet = await tx.pet.findFirst({
-      where: { status: "available", featuredMonth: null },
-      orderBy: { createdAt: "asc" },
+      where: {
+        status: "available",
+        OR: [{ featuredMonth: null }, { featuredMonth: { not: currentMonth } }],
+      },
+      orderBy: [{ lastFeaturedAt: "asc" }, { createdAt: "asc" }],
     });
 
     if (!pet) return null;
 
-    const currentMonth = new Date().toISOString().slice(0, 7);
-
-    await tx.pet.update({
+    const updatedPet = await tx.pet.update({
       where: { id: pet.id },
       data: { featuredMonth: currentMonth, lastFeaturedAt: new Date() },
     });
 
-    return {
-      name: pet.name,
-      imageUrl: pet.imageUrl!,
-      description: pet.description!,
-      slug: pet.slug,
-    };
+    return toPetOfMonth(updatedPet);
   });
 }
 

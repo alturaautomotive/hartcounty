@@ -32,33 +32,63 @@ export default function SponsorButton({
       if (!window.paypal || rendered.current || !containerRef.current) return;
       rendered.current = true;
 
-      window.paypal.Buttons({
-        style: { shape: "rect", color: "gold", label: "donate", layout: "horizontal" },
-        createOrder: async () => {
-          const endpoint = `/api/paypal/${isMonthly ? "subscriptions" : "orders"}`;
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              amount: 25,
-              interval: isMonthly ? "monthly" : "one-time",
-              petId,
-            }),
-          });
-          const data = await res.json();
-          return data.id;
-        },
-        onApprove: async (data: { orderID: string; subscriptionID?: string }) => {
-          const id = isMonthly ? data.subscriptionID : data.orderID;
-          const endpoint = isMonthly ? "subscriptions" : "orders";
-          await fetch(`/api/paypal/${endpoint}/${id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ interval: isMonthly ? "monthly" : "one-time" }),
-          });
-          setThankYou(true);
-        },
-      }).render(containerRef.current);
+      const style = {
+        shape: "rect",
+        color: "gold",
+        label: isMonthly ? "subscribe" : "donate",
+        layout: "horizontal",
+      };
+
+      window.paypal.Buttons(
+        isMonthly
+          ? {
+              style,
+              createSubscription: async () => {
+                const res = await fetch("/api/paypal/subscriptions", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ petId }),
+                });
+                if (!res.ok) throw new Error("Failed to create PayPal subscription");
+                const data = await res.json();
+                return data.id;
+              },
+              onApprove: async (data: { subscriptionID: string }) => {
+                const res = await fetch(`/api/paypal/subscriptions/${data.subscriptionID}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                });
+                if (!res.ok) throw new Error("Failed to activate PayPal subscription");
+                setThankYou(true);
+              },
+            }
+          : {
+              style,
+              createOrder: async () => {
+                const res = await fetch("/api/paypal/orders", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    amount: 25,
+                    interval: "one-time",
+                    petId,
+                  }),
+                });
+                if (!res.ok) throw new Error("Failed to create PayPal order");
+                const data = await res.json();
+                return data.id;
+              },
+              onApprove: async (data: { orderID: string }) => {
+                const res = await fetch(`/api/paypal/orders/${data.orderID}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ interval: "one-time" }),
+                });
+                if (!res.ok) throw new Error("Failed to capture PayPal order");
+                setThankYou(true);
+              },
+            }
+      ).render(containerRef.current);
     }
 
     if (window.paypal) {

@@ -14,16 +14,32 @@ export async function PATCH(
     const capture = await captureOrder(accessToken, orderId);
 
     const unit = capture.purchase_units?.[0];
-    const amount = parseFloat(unit?.payments?.captures?.[0]?.amount?.value ?? "0");
+    const paymentCapture = unit?.payments?.captures?.[0];
+    const paypalTransactionId = paymentCapture?.id;
+    const amount = parseFloat(paymentCapture?.amount?.value ?? "0");
     const petId = unit?.custom_id || null;
     const payer = capture.payer;
 
-    await prisma.donation.create({
-      data: {
+    if (!paypalTransactionId || !Number.isFinite(amount) || amount <= 0) {
+      throw new Error("PayPal capture response did not include a valid payment transaction");
+    }
+
+    await prisma.donation.upsert({
+      where: { paypalTransactionId },
+      create: {
         amount,
         interval: interval ?? "one-time",
         petId,
-        paypalTransactionId: orderId,
+        paypalTransactionId,
+        name: payer?.name
+          ? `${payer.name.given_name} ${payer.name.surname}`
+          : null,
+        email: payer?.email_address ?? null,
+      },
+      update: {
+        amount,
+        interval: interval ?? "one-time",
+        petId,
         name: payer?.name
           ? `${payer.name.given_name} ${payer.name.surname}`
           : null,
@@ -31,7 +47,7 @@ export async function PATCH(
       },
     });
 
-    return Response.json({ status: "COMPLETED", orderId });
+    return Response.json({ status: "COMPLETED", orderId, paypalTransactionId });
   } catch (err) {
     console.error("PayPal capture order error:", err);
     return Response.json(
