@@ -781,9 +781,8 @@ export async function deletePet(formData: FormData): Promise<void> {
     }
   }
 
-  // Delete related bookings and donations first
+  // Bookings block pet deletion, but donation history is retained via ON DELETE SET NULL.
   await prisma.bookingRequest.deleteMany({ where: { petId: id } });
-  await prisma.donation.deleteMany({ where: { petId: id } });
   await prisma.pet.delete({ where: { id } });
   revalidatePath("/admin/pets");
   revalidatePath("/pets");
@@ -906,6 +905,7 @@ export async function getExportCsv(): Promise<string> {
 }
 
 export async function updateBookingStatus(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
   if (!id || !status) return;

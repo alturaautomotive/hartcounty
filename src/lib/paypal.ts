@@ -119,5 +119,10 @@ export async function activateSubscription(accessToken: string, subId: string) {
     throw new Error(`PayPal activateSubscription failed: ${res.status} ${await res.text()}`);
   }
 
-  return res.json();
+  if (res.status === 204) {
+    return null;
+  }
+
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }

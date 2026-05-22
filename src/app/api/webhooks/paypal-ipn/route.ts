@@ -40,6 +40,11 @@ export async function POST(request: Request) {
   const interval = txnType === "subscr_payment" ? "monthly" : "one-time";
   const petId = custom || null;
 
+  if (!txnId) {
+    console.error("PayPal IPN missing txn_id for completed payment");
+    return Response.json({ error: "Missing transaction ID" }, { status: 400 });
+  }
+
   await prisma.donation.upsert({
     where: { paypalTransactionId: txnId },
     create: {
