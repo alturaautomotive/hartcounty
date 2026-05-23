@@ -14,24 +14,36 @@ export async function PATCH(
     const capture = await captureOrder(accessToken, orderId);
 
     const unit = capture.purchase_units?.[0];
-    const amount = parseFloat(unit?.payments?.captures?.[0]?.amount?.value ?? "0");
+    const captureDetails = unit?.payments?.captures?.[0];
+    const paypalTransactionId = captureDetails?.id ?? orderId;
+    const amount = parseFloat(captureDetails?.amount?.value ?? "0");
     const petId = unit?.custom_id || null;
     const payer = capture.payer;
+    const name = payer?.name
+      ? `${payer.name.given_name} ${payer.name.surname}`
+      : null;
+    const email = payer?.email_address ?? null;
 
-    await prisma.donation.create({
-      data: {
+    await prisma.donation.upsert({
+      where: { paypalTransactionId },
+      create: {
         amount,
         interval: interval ?? "one-time",
         petId,
-        paypalTransactionId: orderId,
-        name: payer?.name
-          ? `${payer.name.given_name} ${payer.name.surname}`
-          : null,
-        email: payer?.email_address ?? null,
+        paypalTransactionId,
+        name,
+        email,
+      },
+      update: {
+        amount,
+        interval: interval ?? "one-time",
+        petId,
+        name,
+        email,
       },
     });
 
-    return Response.json({ status: "COMPLETED", orderId });
+    return Response.json({ status: "COMPLETED", orderId, paypalTransactionId });
   } catch (err) {
     console.error("PayPal capture order error:", err);
     return Response.json(
