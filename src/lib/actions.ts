@@ -487,7 +487,7 @@ export async function logoutAction(): Promise<void> {
   cookieStore.delete("admin-token");
 }
 
-export async function createAdminUser(
+async function createAdminUserRecord(
   email: string,
   password: string,
   name?: string,
@@ -539,7 +539,7 @@ export async function createAdminUserAction(
       };
     }
 
-    await createAdminUser(
+    await createAdminUserRecord(
       parsed.data.email.toLowerCase(),
       parsed.data.password,
       parsed.data.name,
@@ -671,6 +671,7 @@ export async function updatePet(
   id: string,
   data: Record<string, unknown>
 ) {
+  await requireAdmin();
   await prisma.pet.update({ where: { id }, data });
   revalidatePath("/admin/pets");
   revalidatePath("/pets");
@@ -888,6 +889,7 @@ export async function deleteTeamMemberAction(
 }
 
 export async function getExportCsv(): Promise<string> {
+  await requireAdmin();
   const pets = await prisma.pet.findMany({ orderBy: { name: "asc" } });
   const rows = pets.map((p) => ({
     title: p.name,
@@ -906,6 +908,7 @@ export async function getExportCsv(): Promise<string> {
 }
 
 export async function updateBookingStatus(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = formData.get("id") as string;
   const status = formData.get("status") as string;
   if (!id || !status) return;
