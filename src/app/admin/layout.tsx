@@ -9,7 +9,6 @@ const navItems = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/pets", label: "Pets" },
   { href: "/admin/contacts", label: "Contacts" },
-  { href: "/admin/inbox", label: "Inbox" },
   { href: "/admin/team", label: "Team" },
   { href: "/admin/newsletter", label: "Newsletter" },
   { href: "/admin/donations", label: "Donations" },
@@ -30,8 +29,6 @@ export default async function AdminLayout({
       })
     : null;
 
-  // Unauthenticated users: proxy.ts redirects non-login admin routes to /admin/login.
-  // This fallback only renders for /admin/login itself.
   if (!user) {
     return <>{children}</>;
   }
