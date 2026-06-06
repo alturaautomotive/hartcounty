@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 // Inbound webhook from GoHighLevel.
-// GHL fires this when a new contact is created or updated in a workflow.
+// GHL fires this when a new contact is created/updated in a workflow.
 // Auth: shared secret in X-GHL-Secret header (set GHL_WEBHOOK_SECRET in Vercel).
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // GHL sends contact fields — map common field names
   const email =
     (body.email as string) ??
     (body.Email as string) ??
@@ -34,7 +33,6 @@ export async function POST(request: NextRequest) {
   const firstName =
     (body.firstName as string) ??
     (body.first_name as string) ??
-    (body.firstName as string) ??
     null;
 
   const lastName =
@@ -55,27 +53,33 @@ export async function POST(request: NextRequest) {
       create: {
         email,
         firstName: firstName ?? null,
-        consentGiven: true,
         source: "ghl",
+        consentedAt: new Date(),
       },
     });
 
-    // Upsert contact record
-    await prisma.contact.upsert({
-      where: { email },
-      update: {
-        firstName: firstName ?? undefined,
-        lastName: lastName ?? undefined,
-        phone: phone ?? undefined,
-      },
-      create: {
-        email,
-        firstName: firstName ?? null,
-        lastName: lastName ?? null,
-        phone: phone ?? null,
-        source: "ghl",
-      },
-    });
+    // Create contact if not already present (email is optional on Contact so use findFirst)
+    const existing = await prisma.contact.findFirst({ where: { email } });
+    if (!existing) {
+      await prisma.contact.create({
+        data: {
+          email,
+          firstName: firstName ?? null,
+          lastName: lastName ?? null,
+          phone: phone ?? null,
+          source: "ghl",
+        },
+      });
+    } else {
+      await prisma.contact.update({
+        where: { id: existing.id },
+        data: {
+          firstName: firstName ?? undefined,
+          lastName: lastName ?? undefined,
+          phone: phone ?? undefined,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {
