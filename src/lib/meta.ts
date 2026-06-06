@@ -30,7 +30,7 @@ export function metaPrice(pet: Pet): string {
 }
 
 export function metaTitle(pet: Pet): string {
-  return `${pet.name} – ${pet.ageCategory ?? ""} ${pet.sex ?? ""} ${pet.species ?? ""} ${pet.breed ?? ""}`.trim();
+  return `${pet.name} - ${pet.ageCategory ?? ""} ${pet.sex ?? ""} ${pet.species ?? ""} ${pet.breed ?? ""}`.trim();
 }
 
 export function metaDescription(pet: Pet): string {
