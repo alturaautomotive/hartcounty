@@ -19,17 +19,17 @@ export async function POST(request: NextRequest) {
 
   console.log("[GHL INBOUND] Full payload:", JSON.stringify(body));
 
-  // GHL top-level fields
   const contactId = (body.contact_id as string) ?? null;
-  const firstName = (body.first_name as string) ?? null;
-  const lastName = (body.last_name as string) ?? null;
+  const firstName = (body.first_name as string) ?? (body.firstName as string) ?? null;
+  const lastName = (body.last_name as string) ?? (body.lastName as string) ?? null;
   const fullName = (body.full_name as string) ?? null;
 
-  // GHL does not send email in the webhook payload directly.
-  // Fetch it from GHL Contacts API using contact_id.
-  let email: string | null = null;
+  // Email from custom data fields (added in GHL webhook config)
+  let email: string | null =
+    (body.email as string) ?? (body.Email as string) ?? null;
 
-  if (contactId && process.env.GHL_API_KEY) {
+  // Fallback: fetch from GHL Contacts API if contact_id is available
+  if (!email && contactId && process.env.GHL_API_KEY) {
     try {
       const res = await fetch(
         `https://services.leadconnectorhq.com/contacts/${contactId}`,
@@ -42,10 +42,8 @@ export async function POST(request: NextRequest) {
       );
       if (res.ok) {
         const data = await res.json();
-        email = data?.contact?.email ?? null;
+        email = (data?.contact?.email as string) ?? null;
         console.log("[GHL INBOUND] Fetched email from API:", email);
-      } else {
-        console.error("[GHL INBOUND] GHL API error:", res.status, await res.text());
       }
     } catch (err) {
       console.error("[GHL INBOUND] GHL API fetch error:", err);
@@ -54,22 +52,19 @@ export async function POST(request: NextRequest) {
 
   if (!email) {
     return NextResponse.json(
-      {
-        error: "Email is required — add GHL_API_KEY to Vercel env vars to enable contact lookup",
-        contact_id: contactId,
-        first_name: firstName,
-      },
+      { error: "Email is required", contact_id: contactId, first_name: firstName },
       { status: 400 }
     );
   }
 
   // Parse first/last from full_name if individual fields are missing
-  let parsedFirst = firstName;
-  let parsedLast = lastName;
+  let parsedFirst: string | null = firstName;
+  let parsedLast: string | null = lastName;
   if (!parsedFirst && fullName) {
     const parts = fullName.trim().split(" ");
     parsedFirst = parts[0] ?? null;
-    parsedLast = parts.slice(1).join(" ") || null;
+    const rest = parts.slice(1).join(" ");
+    parsedLast = rest.length > 0 ? rest : null;
   }
 
   try {
