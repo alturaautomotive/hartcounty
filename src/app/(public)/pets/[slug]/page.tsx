@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getPetBySlug } from "@/lib/queries";
 import SponsorButton from "./SponsorButton";
+import PetPixelEvent from "@/components/PetPixelEvent";
 
 const traitBadges = [
   { key: "goodWithKids", label: "Good with Kids" },
