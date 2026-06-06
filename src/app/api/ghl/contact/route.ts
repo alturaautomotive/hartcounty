@@ -19,56 +19,66 @@ export async function POST(request: NextRequest) {
 
   console.log("[GHL INBOUND] Full payload:", JSON.stringify(body));
 
-  // GHL nests contact data under a "contact" key
-  const contactObj = (body.contact as Record<string, unknown>) ?? {};
+  // GHL top-level fields
+  const contactId = (body.contact_id as string) ?? null;
+  const firstName = (body.first_name as string) ?? null;
+  const lastName = (body.last_name as string) ?? null;
+  const fullName = (body.full_name as string) ?? null;
 
-  const email =
-    (contactObj.email as string) ??
-    (contactObj.Email as string) ??
-    (contactObj.emailAddress as string) ??
-    (contactObj.email_address as string) ??
-    (body.email as string) ??
-    null;
+  // GHL does not send email in the webhook payload directly.
+  // Fetch it from GHL Contacts API using contact_id.
+  let email: string | null = null;
 
-  const firstName =
-    (contactObj.firstName as string) ??
-    (contactObj.first_name as string) ??
-    (body.first_name as string) ??
-    null;
-
-  const lastName =
-    (contactObj.lastName as string) ??
-    (contactObj.last_name as string) ??
-    (body.last_name as string) ??
-    null;
-
-  const phone =
-    (contactObj.phone as string) ??
-    (contactObj.Phone as string) ??
-    (contactObj.phoneNumber as string) ??
-    (body.phone as string) ??
-    null;
+  if (contactId && process.env.GHL_API_KEY) {
+    try {
+      const res = await fetch(
+        `https://services.leadconnectorhq.com/contacts/${contactId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.GHL_API_KEY}`,
+            Version: "2021-07-28",
+          },
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        email = data?.contact?.email ?? null;
+        console.log("[GHL INBOUND] Fetched email from API:", email);
+      } else {
+        console.error("[GHL INBOUND] GHL API error:", res.status, await res.text());
+      }
+    } catch (err) {
+      console.error("[GHL INBOUND] GHL API fetch error:", err);
+    }
+  }
 
   if (!email) {
-    // Expose nested contact keys so we can see exact field names
     return NextResponse.json(
       {
-        error: "Email is required",
-        top_level_keys: Object.keys(body),
-        contact_keys: Object.keys(contactObj),
-        contact_sample: contactObj,
+        error: "Email is required — add GHL_API_KEY to Vercel env vars to enable contact lookup",
+        contact_id: contactId,
+        first_name: firstName,
       },
       { status: 400 }
     );
   }
 
+  // Parse first/last from full_name if individual fields are missing
+  let parsedFirst = firstName;
+  let parsedLast = lastName;
+  if (!parsedFirst && fullName) {
+    const parts = fullName.trim().split(" ");
+    parsedFirst = parts[0] ?? null;
+    parsedLast = parts.slice(1).join(" ") || null;
+  }
+
   try {
     await prisma.subscriber.upsert({
       where: { email },
-      update: { firstName: firstName ?? undefined },
+      update: { firstName: parsedFirst ?? undefined },
       create: {
         email,
-        firstName: firstName ?? null,
+        firstName: parsedFirst ?? null,
         source: "ghl",
         consentedAt: new Date(),
       },
@@ -79,9 +89,8 @@ export async function POST(request: NextRequest) {
       await prisma.contact.create({
         data: {
           email,
-          firstName: firstName ?? null,
-          lastName: lastName ?? null,
-          phone: phone ?? null,
+          firstName: parsedFirst ?? null,
+          lastName: parsedLast ?? null,
           source: "ghl",
         },
       });
@@ -89,14 +98,13 @@ export async function POST(request: NextRequest) {
       await prisma.contact.update({
         where: { id: existing.id },
         data: {
-          firstName: firstName ?? undefined,
-          lastName: lastName ?? undefined,
-          phone: phone ?? undefined,
+          firstName: parsedFirst ?? undefined,
+          lastName: parsedLast ?? undefined,
         },
       });
     }
 
-    return NextResponse.json({ success: true, email, firstName, lastName, phone });
+    return NextResponse.json({ success: true, email, firstName: parsedFirst, lastName: parsedLast });
   } catch (err) {
     console.error("[GHL INBOUND] DB error:", err);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
