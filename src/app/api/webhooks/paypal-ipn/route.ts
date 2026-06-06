@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { sendCapiEvent, buildCapiEvent } from "@/lib/capi";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -39,6 +40,24 @@ export async function POST(request: Request) {
   const name = `${firstName} ${lastName}`.trim();
   const interval = txnType === "subscr_payment" ? "monthly" : "one-time";
   const petId = custom || null;
+
+  // Fire CAPI Purchase event
+  await sendCapiEvent([{
+    event_name: "Purchase",
+    event_time: Math.floor(Date.now() / 1000),
+    action_source: "website",
+    event_id: txnId,
+    user_data: {
+      client_ip_address: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined,
+      client_user_agent: request.headers.get("user-agent") ?? undefined,
+    },
+    custom_data: {
+      value: amount,
+      currency: "USD",
+      content_name: interval === "monthly" ? "Monthly Donation" : "One-time Donation",
+      content_type: "product",
+    },
+  }]);
 
   await prisma.donation.upsert({
     where: { paypalTransactionId: txnId },
