@@ -1,5 +1,6 @@
 import DonateButtons from "./DonateButtons";
 import MonthlyButtons from "./MonthlyButtons";
+import DonatePixelEvent from "@/components/DonatePixelEvent";
 
 export const metadata = {
   title: "Donate or Subscribe Monthly - Hart County Animal Rescue",
