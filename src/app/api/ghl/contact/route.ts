@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-// Inbound webhook from GoHighLevel.
 export async function POST(request: NextRequest) {
   const secret = process.env.GHL_WEBHOOK_SECRET;
   if (secret) {
@@ -18,47 +17,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Log full payload for debugging
-  console.log("[GHL INBOUND] Payload:", JSON.stringify(body));
+  console.log("[GHL INBOUND] Full payload:", JSON.stringify(body));
 
-  // GHL can nest contact data under a "contact" key or send flat
-  const contact = (body.contact as Record<string, unknown>) ?? body;
+  // GHL nests contact data under a "contact" key
+  const contactObj = (body.contact as Record<string, unknown>) ?? {};
 
   const email =
-    (contact.email as string) ??
-    (contact.Email as string) ??
-    (contact.emailAddress as string) ??
+    (contactObj.email as string) ??
+    (contactObj.Email as string) ??
+    (contactObj.emailAddress as string) ??
+    (contactObj.email_address as string) ??
     (body.email as string) ??
-    (body.Email as string) ??
     null;
 
   const firstName =
-    (contact.firstName as string) ??
-    (contact.first_name as string) ??
-    (contact.name as string) ??
-    (body.firstName as string) ??
+    (contactObj.firstName as string) ??
+    (contactObj.first_name as string) ??
     (body.first_name as string) ??
     null;
 
   const lastName =
-    (contact.lastName as string) ??
-    (contact.last_name as string) ??
-    (body.lastName as string) ??
+    (contactObj.lastName as string) ??
+    (contactObj.last_name as string) ??
     (body.last_name as string) ??
     null;
 
   const phone =
-    (contact.phone as string) ??
-    (contact.Phone as string) ??
-    (contact.phoneNumber as string) ??
+    (contactObj.phone as string) ??
+    (contactObj.Phone as string) ??
+    (contactObj.phoneNumber as string) ??
     (body.phone as string) ??
-    (body.Phone as string) ??
     null;
 
   if (!email) {
-    console.log("[GHL INBOUND] Missing email. Full body:", JSON.stringify(body));
+    // Expose nested contact keys so we can see exact field names
     return NextResponse.json(
-      { error: "Email is required", received: Object.keys(body) },
+      {
+        error: "Email is required",
+        top_level_keys: Object.keys(body),
+        contact_keys: Object.keys(contactObj),
+        contact_sample: contactObj,
+      },
       { status: 400 }
     );
   }
