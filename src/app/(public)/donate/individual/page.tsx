@@ -34,7 +34,6 @@ const MONTHLY_TIERS: { amount: number; label: string }[] = [
 ];
 
 // ─── PayPal one-time donate button placeholder ────────────────────────────────
- — see src/app/(public)/donate/page.tsx for pattern
 function PayPalDonateButton({ amount, id }: { amount: number; id: string }) {
   const rendered = useRef(false);
   const [ready, setReady] = useState(false);
@@ -55,7 +54,6 @@ function PayPalDonateButton({ amount, id }: { amount: number; id: string }) {
             label: "donate",
             layout: "horizontal",
           },
-           — see src/app/(public)/donate/page.tsx for pattern
           createOrder: async () => {
             const res = await fetch("/api/paypal/orders", {
               method: "POST",
@@ -106,7 +104,6 @@ function PayPalDonateButton({ amount, id }: { amount: number; id: string }) {
 }
 
 // ─── PayPal monthly subscription button placeholder ───────────────────────────
- — see src/app/(public)/donate/page.tsx for pattern
 function PayPalSubscribeButton({ amount, id }: { amount: number; id: string }) {
   const rendered = useRef(false);
   const [ready, setReady] = useState(false);
@@ -127,7 +124,6 @@ function PayPalSubscribeButton({ amount, id }: { amount: number; id: string }) {
             label: "subscribe",
             layout: "horizontal",
           },
-           — see src/app/(public)/donate/page.tsx for pattern
           createSubscription: async () => {
             const res = await fetch("/api/paypal/subscriptions", {
               method: "POST",
