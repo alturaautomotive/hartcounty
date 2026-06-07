@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getPetBySlug } from "@/lib/queries";
 import SponsorButton from "./SponsorButton";
 import PetPixelEvent from "@/components/PetPixelEvent";
+import ImageLightbox from "@/components/ImageLightbox";
 import { sendCapiEvent } from "@/lib/capi";
 
 const traitBadges = [
@@ -65,18 +66,12 @@ export default async function PetDetailPage({
         </Link>
 
         <div className="grid gap-8 md:grid-cols-2">
-          {/* Hero image */}
-          <div className="relative aspect-[2/3] overflow-hidden rounded-3xl bg-slate-900 shadow-2xl shadow-slate-950/20 ring-1 ring-white/70">
-            {pet.imageUrl ? (
-              <Image
-                src={pet.imageUrl}
-                alt={pet.name}
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
-                priority
-              />
-            ) : (
+          {/* Hero image — click to expand */}
+          {pet.imageUrl ? (
+            <ImageLightbox src={pet.imageUrl} alt={pet.name} />
+          ) : (
+            <div className="relative aspect-[2/3] overflow-hidden rounded-3xl bg-slate-900 shadow-2xl shadow-slate-950/20 ring-1 ring-white/70">
+            <div className="flex h-full items-center justify-center text-amber-200">
               <div className="flex h-full items-center justify-center text-amber-200">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
