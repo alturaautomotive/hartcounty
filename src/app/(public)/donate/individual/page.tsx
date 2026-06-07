@@ -1,8 +1,10 @@
 "use client";
+import IndividualDonateButtons from "./IndividualDonateButtons";
+import IndividualMonthlyButtons from "./IndividualMonthlyButtons";
 
 // Route: /donate/individual
 // MOF/LOF retargeting destination — standalone emotional landing page for individuals
-// TODO: Wire PayPal SDK — see src/app/(public)/donate/page.tsx for pattern
+ — see src/app/(public)/donate/page.tsx for pattern
 
 import { useEffect, useRef, useState } from "react";
 
@@ -33,7 +35,7 @@ const MONTHLY_TIERS: { amount: number; label: string }[] = [
 ];
 
 // ─── PayPal one-time donate button placeholder ────────────────────────────────
-// TODO: Wire PayPal SDK — see src/app/(public)/donate/page.tsx for pattern
+ — see src/app/(public)/donate/page.tsx for pattern
 function PayPalDonateButton({ amount, id }: { amount: number; id: string }) {
   const rendered = useRef(false);
   const [ready, setReady] = useState(false);
@@ -54,7 +56,7 @@ function PayPalDonateButton({ amount, id }: { amount: number; id: string }) {
             label: "donate",
             layout: "horizontal",
           },
-          // TODO: Wire PayPal SDK — see src/app/(public)/donate/page.tsx for pattern
+           — see src/app/(public)/donate/page.tsx for pattern
           createOrder: async () => {
             const res = await fetch("/api/paypal/orders", {
               method: "POST",
@@ -105,7 +107,7 @@ function PayPalDonateButton({ amount, id }: { amount: number; id: string }) {
 }
 
 // ─── PayPal monthly subscription button placeholder ───────────────────────────
-// TODO: Wire PayPal SDK — see src/app/(public)/donate/page.tsx for pattern
+ — see src/app/(public)/donate/page.tsx for pattern
 function PayPalSubscribeButton({ amount, id }: { amount: number; id: string }) {
   const rendered = useRef(false);
   const [ready, setReady] = useState(false);
@@ -126,7 +128,7 @@ function PayPalSubscribeButton({ amount, id }: { amount: number; id: string }) {
             label: "subscribe",
             layout: "horizontal",
           },
-          // TODO: Wire PayPal SDK — see src/app/(public)/donate/page.tsx for pattern
+           — see src/app/(public)/donate/page.tsx for pattern
           createSubscription: async () => {
             const res = await fetch("/api/paypal/subscriptions", {
               method: "POST",
@@ -273,7 +275,7 @@ export default function IndividualDonatePage() {
                     {tier.label}
                   </p>
                 </div>
-                <PayPalDonateButton
+                <IndividualDonateButtons
                   amount={tier.amount}
                   id={`paypal-one-time-${tier.amount}`}
                 />
@@ -308,7 +310,7 @@ export default function IndividualDonatePage() {
                     {tier.label}
                   </p>
                 </div>
-                <PayPalSubscribeButton
+                <IndividualMonthlyButtons
                   amount={tier.amount}
                   id={`paypal-monthly-${tier.amount}`}
                 />
