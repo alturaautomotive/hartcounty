@@ -1,4 +1,5 @@
 "use client";
+import CorporateButtons from "./CorporateButtons";
 
 // Route: /donate/corporate
 // Corporate sponsorship landing page — bold, professional, warm
