@@ -4,7 +4,6 @@ import IndividualMonthlyButtons from "./IndividualMonthlyButtons";
 
 // Route: /donate/individual
 // MOF/LOF retargeting destination — standalone emotional landing page for individuals
- — see src/app/(public)/donate/page.tsx for pattern
 
 import { useEffect, useRef, useState } from "react";
 
