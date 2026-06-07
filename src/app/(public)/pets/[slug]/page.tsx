@@ -78,7 +78,6 @@ export default async function PetDetailPage({
               />
             ) : (
               <div className="flex h-full items-center justify-center text-amber-200">
-              <div className="flex h-full items-center justify-center text-amber-200">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-24 w-24"
