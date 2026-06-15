@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
-    paypal?: {
+    paypalSubscriptions?: {
       Buttons: (opts: Record<string, unknown>) => { render: (el: string | HTMLElement) => void };
     };
   }
@@ -22,7 +22,7 @@ export default function MonthlyButtons() {
 
   useEffect(() => {
     function renderButtons() {
-      if (!window.paypal) return;
+      if (!window.paypalSubscriptions) return;
 
       for (const amt of AMOUNTS) {
         if (rendered.current.has(amt)) continue;
@@ -30,7 +30,7 @@ export default function MonthlyButtons() {
         if (!container) continue;
         rendered.current.add(amt);
 
-        window.paypal.Buttons({
+        window.paypalSubscriptions.Buttons({
           style: { shape: "rect", color: "gold", label: "subscribe", layout: "horizontal" },
           createSubscription: async () => {
             const res = await fetch("/api/paypal/subscriptions", {
@@ -52,11 +52,11 @@ export default function MonthlyButtons() {
       }
     }
 
-    if (window.paypal) {
+    if (window.paypalSubscriptions) {
       renderButtons();
     } else {
       const timer = setInterval(() => {
-        if (window.paypal) {
+        if (window.paypalSubscriptions) {
           clearInterval(timer);
           renderButtons();
         }

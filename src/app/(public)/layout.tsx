@@ -13,11 +13,18 @@ export default function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+
   return (
     <div className="flex min-h-screen flex-col">
       <Script
-        src={`https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&intent=capture`}
+        src={`https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD&intent=capture`}
         strategy="beforeInteractive"
+      />
+      <Script
+        src={`https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD&vault=true&intent=subscription`}
+        strategy="beforeInteractive"
+        data-namespace="paypalSubscriptions"
       />
 
       <header className="sticky top-0 z-40 border-b border-amber-200/30 bg-slate-950/95 shadow-2xl shadow-slate-950/20 backdrop-blur">
