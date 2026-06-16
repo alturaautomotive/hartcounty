@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
-declare global {
-  interface Window {
-    paypal?: {
-      Buttons: (opts: Record<string, unknown>) => { render: (el: string | HTMLElement) => void };
-    };
-  }
-}
+import {
+  loadPayPalSubscriptionSdk,
+  type PayPalNamespace,
+} from "@/lib/paypal-client";
 
 export default function SponsorButton({
   petId,
@@ -23,55 +19,94 @@ export default function SponsorButton({
   const rendered = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
     rendered.current = false;
     if (containerRef.current) {
       containerRef.current.innerHTML = "";
     }
 
-    function renderButton() {
-      if (!window.paypal || rendered.current || !containerRef.current) return;
+    function renderButton(paypal: PayPalNamespace) {
+      if (cancelled || rendered.current || !containerRef.current) return;
       rendered.current = true;
 
-      window.paypal.Buttons({
-        style: { shape: "rect", color: "gold", label: "donate", layout: "horizontal" },
-        createOrder: async () => {
-          const endpoint = `/api/paypal/${isMonthly ? "subscriptions" : "orders"}`;
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              amount: 25,
-              interval: isMonthly ? "monthly" : "one-time",
-              petId,
-            }),
-          });
-          const data = await res.json();
-          return data.id;
+      paypal.Buttons({
+        style: {
+          shape: "rect",
+          color: "gold",
+          label: isMonthly ? "subscribe" : "donate",
+          layout: "horizontal",
         },
-        onApprove: async (data: { orderID: string; subscriptionID?: string }) => {
+        ...(isMonthly
+          ? {
+              createSubscription: async () => {
+                const res = await fetch("/api/paypal/subscriptions", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ petId }),
+                });
+                const data = await res.json();
+                return data.id;
+              },
+            }
+          : {
+              createOrder: async () => {
+                const res = await fetch("/api/paypal/orders", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    amount: 25,
+                    interval: "one-time",
+                    petId,
+                  }),
+                });
+                const data = await res.json();
+                return data.id;
+              },
+            }),
+        onApprove: async (data: { orderID?: string; subscriptionID?: string }) => {
           const id = isMonthly ? data.subscriptionID : data.orderID;
+          if (!id) {
+            throw new Error("PayPal approval did not include a transaction ID");
+          }
           const endpoint = isMonthly ? "subscriptions" : "orders";
-          await fetch(`/api/paypal/${endpoint}/${id}`, {
+          const res = await fetch(`/api/paypal/${endpoint}/${id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ interval: isMonthly ? "monthly" : "one-time" }),
           });
+          if (!res.ok) {
+            throw new Error("Failed to record PayPal transaction");
+          }
           setThankYou(true);
         },
       }).render(containerRef.current);
     }
 
-    if (window.paypal) {
-      renderButton();
+    if (isMonthly) {
+      loadPayPalSubscriptionSdk()
+        .then(renderButton)
+        .catch((err) => console.error("Failed to load PayPal subscriptions:", err));
+      return () => {
+        cancelled = true;
+      };
+    } else if (window.paypal) {
+      renderButton(window.paypal);
     } else {
       const timer = setInterval(() => {
         if (window.paypal) {
           clearInterval(timer);
-          renderButton();
+          renderButton(window.paypal);
         }
       }, 200);
-      return () => clearInterval(timer);
+      return () => {
+        cancelled = true;
+        clearInterval(timer);
+      };
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [petId, isMonthly]);
 
   if (thankYou) {

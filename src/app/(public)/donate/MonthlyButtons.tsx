@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
-declare global {
-  interface Window {
-    paypal?: {
-      Buttons: (opts: Record<string, unknown>) => { render: (el: string | HTMLElement) => void };
-    };
-  }
-}
+import {
+  loadPayPalSubscriptionSdk,
+  type PayPalNamespace,
+} from "@/lib/paypal-client";
 
 const AMOUNTS = [25] as const;
 
@@ -21,16 +17,14 @@ export default function MonthlyButtons() {
   const rendered = useRef<Set<number>>(new Set());
 
   useEffect(() => {
-    function renderButtons() {
-      if (!window.paypal) return;
-
+    function renderButtons(paypal: PayPalNamespace) {
       for (const amt of AMOUNTS) {
         if (rendered.current.has(amt)) continue;
         const container = document.getElementById(`paypal-monthly-btn-${amt}`);
         if (!container) continue;
         rendered.current.add(amt);
 
-        window.paypal.Buttons({
+        paypal.Buttons({
           style: { shape: "rect", color: "gold", label: "subscribe", layout: "horizontal" },
           createSubscription: async () => {
             const res = await fetch("/api/paypal/subscriptions", {
@@ -52,17 +46,9 @@ export default function MonthlyButtons() {
       }
     }
 
-    if (window.paypal) {
-      renderButtons();
-    } else {
-      const timer = setInterval(() => {
-        if (window.paypal) {
-          clearInterval(timer);
-          renderButtons();
-        }
-      }, 200);
-      return () => clearInterval(timer);
-    }
+    loadPayPalSubscriptionSdk()
+      .then(renderButtons)
+      .catch((err) => console.error("Failed to load PayPal subscriptions:", err));
   }, []);
 
   if (thankYou) {
