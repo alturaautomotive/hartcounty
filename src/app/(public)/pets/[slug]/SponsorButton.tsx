@@ -32,33 +32,52 @@ export default function SponsorButton({
       if (!window.paypal || rendered.current || !containerRef.current) return;
       rendered.current = true;
 
-      window.paypal.Buttons({
-        style: { shape: "rect", color: "gold", label: "donate", layout: "horizontal" },
-        createOrder: async () => {
-          const endpoint = `/api/paypal/${isMonthly ? "subscriptions" : "orders"}`;
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              amount: 25,
-              interval: isMonthly ? "monthly" : "one-time",
-              petId,
-            }),
-          });
-          const data = await res.json();
-          return data.id;
-        },
-        onApprove: async (data: { orderID: string; subscriptionID?: string }) => {
-          const id = isMonthly ? data.subscriptionID : data.orderID;
-          const endpoint = isMonthly ? "subscriptions" : "orders";
-          await fetch(`/api/paypal/${endpoint}/${id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ interval: isMonthly ? "monthly" : "one-time" }),
-          });
-          setThankYou(true);
-        },
-      }).render(containerRef.current);
+      const buttonOptions = isMonthly
+        ? {
+            style: { shape: "rect", color: "gold", label: "subscribe", layout: "horizontal" },
+            createSubscription: async () => {
+              const res = await fetch("/api/paypal/subscriptions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ petId }),
+              });
+              const data = await res.json();
+              return data.id;
+            },
+            onApprove: async (data: { subscriptionID: string }) => {
+              await fetch(`/api/paypal/subscriptions/${data.subscriptionID}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+              });
+              setThankYou(true);
+            },
+          }
+        : {
+            style: { shape: "rect", color: "gold", label: "donate", layout: "horizontal" },
+            createOrder: async () => {
+              const res = await fetch("/api/paypal/orders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  amount: 25,
+                  interval: "one-time",
+                  petId,
+                }),
+              });
+              const data = await res.json();
+              return data.id;
+            },
+            onApprove: async (data: { orderID: string }) => {
+              await fetch(`/api/paypal/orders/${data.orderID}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ interval: "one-time" }),
+              });
+              setThankYou(true);
+            },
+          };
+
+      window.paypal.Buttons(buttonOptions).render(containerRef.current);
     }
 
     if (window.paypal) {
