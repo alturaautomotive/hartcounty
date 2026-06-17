@@ -2,19 +2,25 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import crypto from "crypto";
 
-const TOKEN_SECRET = process.env.ADMIN_SECRET ?? "hart-county-admin-secret-key";
 const publicAdminRoutes = new Set([
   "/admin/login",
   "/admin/forgot-password",
   "/admin/reset-password",
 ]);
 
+function getTokenSecret(): string | null {
+  return process.env.ADMIN_SECRET || null;
+}
+
 function verifyToken(token: string): boolean {
   try {
+    const tokenSecret = getTokenSecret();
+    if (!tokenSecret) return false;
+
     const [payloadB64, sig] = token.split(".");
     if (!payloadB64 || !sig) return false;
     const payload = Buffer.from(payloadB64, "base64").toString();
-    const expected = crypto.createHmac("sha256", TOKEN_SECRET).update(payload).digest("hex");
+    const expected = crypto.createHmac("sha256", tokenSecret).update(payload).digest("hex");
     if (sig !== expected) return false;
     const data = JSON.parse(payload);
     return data.exp > Date.now();

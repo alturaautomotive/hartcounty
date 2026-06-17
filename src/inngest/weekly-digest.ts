@@ -12,16 +12,22 @@ import {
 import crypto from "crypto";
 import { getPublicSiteUrl } from "../lib/site-url";
 
-const TOKEN_SECRET =
-  process.env.ADMIN_SECRET ?? "hart-county-admin-secret-key";
 const BASE_URL = getPublicSiteUrl();
 const FROM_EMAIL =
   process.env.EMAIL_FROM ?? "Hart County Animal Rescue <newsletter@hcars.org>";
 
+function getTokenSecret(): string {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) {
+    throw new Error("ADMIN_SECRET is required for unsubscribe token signing");
+  }
+  return secret;
+}
+
 function generateUnsubscribeToken(subscriberId: string): string {
   const payload = JSON.stringify({ id: subscriberId, purpose: "unsubscribe" });
   const hmac = crypto
-    .createHmac("sha256", TOKEN_SECRET)
+    .createHmac("sha256", getTokenSecret())
     .update(payload)
     .digest("hex");
   return Buffer.from(payload).toString("base64") + "." + hmac;
