@@ -1,9 +1,7 @@
 import { NextRequest } from "next/server";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
-
-const TOKEN_SECRET =
-  process.env.ADMIN_SECRET ?? "hart-county-admin-secret-key";
+import { getAdminTokenSecret } from "@/lib/token-secret";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
@@ -21,11 +19,18 @@ export async function GET(request: NextRequest) {
 
     const payload = Buffer.from(payloadB64, "base64").toString();
     const expected = crypto
-      .createHmac("sha256", TOKEN_SECRET)
+      .createHmac("sha256", getAdminTokenSecret())
       .update(payload)
       .digest("hex");
 
-    if (sig !== expected) throw new Error("invalid signature");
+    const expectedBuffer = Buffer.from(expected);
+    const sigBuffer = Buffer.from(sig);
+    if (
+      expectedBuffer.length !== sigBuffer.length ||
+      !crypto.timingSafeEqual(expectedBuffer, sigBuffer)
+    ) {
+      throw new Error("invalid signature");
+    }
 
     const data = JSON.parse(payload);
     if (data.purpose !== "unsubscribe" || !data.id) throw new Error("invalid");

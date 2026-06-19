@@ -32,33 +32,52 @@ export default function SponsorButton({
       if (!window.paypal || rendered.current || !containerRef.current) return;
       rendered.current = true;
 
-      window.paypal.Buttons({
+      const buttonOptions: Record<string, unknown> = {
         style: { shape: "rect", color: "gold", label: "donate", layout: "horizontal" },
-        createOrder: async () => {
-          const endpoint = `/api/paypal/${isMonthly ? "subscriptions" : "orders"}`;
-          const res = await fetch(endpoint, {
+        onApprove: async (data: { orderID?: string; subscriptionID?: string }) => {
+          const id = isMonthly ? data.subscriptionID : data.orderID;
+          if (!id) throw new Error("Missing PayPal approval ID");
+          const endpoint = isMonthly ? "subscriptions" : "orders";
+          const res = await fetch(`/api/paypal/${endpoint}/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ interval: isMonthly ? "monthly" : "one-time" }),
+          });
+          if (!res.ok) throw new Error("Failed to record PayPal approval");
+          setThankYou(true);
+        },
+      };
+
+      if (isMonthly) {
+        buttonOptions.createSubscription = async () => {
+          const res = await fetch("/api/paypal/subscriptions", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              amount: 25,
-              interval: isMonthly ? "monthly" : "one-time",
+              interval: "monthly",
               petId,
             }),
           });
           const data = await res.json();
           return data.id;
-        },
-        onApprove: async (data: { orderID: string; subscriptionID?: string }) => {
-          const id = isMonthly ? data.subscriptionID : data.orderID;
-          const endpoint = isMonthly ? "subscriptions" : "orders";
-          await fetch(`/api/paypal/${endpoint}/${id}`, {
-            method: "PATCH",
+        };
+      } else {
+        buttonOptions.createOrder = async () => {
+          const res = await fetch("/api/paypal/orders", {
+            method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ interval: isMonthly ? "monthly" : "one-time" }),
+            body: JSON.stringify({
+              amount: 25,
+              interval: "one-time",
+              petId,
+            }),
           });
-          setThankYou(true);
-        },
-      }).render(containerRef.current);
+          const data = await res.json();
+          return data.id;
+        };
+      }
+
+      window.paypal.Buttons(buttonOptions).render(containerRef.current);
     }
 
     if (window.paypal) {
